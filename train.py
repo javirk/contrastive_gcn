@@ -18,7 +18,7 @@ def main(p):
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
     aug_transformations = get_augmentation_transforms(p)
-    dataset = MNISTSuperpixel('data/', train=True, aug_transform=aug_transformations)
+    dataset = MNISTSuperpixel('data/', train=True, aug_transform=aug_transformations, download=True)
     dataloader = DataLoader(dataset, batch_size=p['batch_size'], shuffle=True)
 
     backbone = UNet(n_channels=1, n_classes=2)
