@@ -1,0 +1,26 @@
+batch_size: 128
+dataset: MNIST # No effect yet
+
+backbone: unet # No effect yet
+
+# Optimizer
+epochs: 40
+optimizer: sgd
+optimizer_kwargs:
+   lr: 0.004
+   weight_decay: 0.0001
+   momentum: 0.9
+   nesterov: False
+scheduler: poly
+
+seggcn_kwargs:
+  K: 256
+  T: 0.1
+
+gcn_kwargs:
+  ndim: 64
+  hidden_channels: 32
+  output_dim: 32
+
+logs:
+  writing_freq: 4
