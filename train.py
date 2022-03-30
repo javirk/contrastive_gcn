@@ -14,7 +14,8 @@ from libs.common_config import get_optimizer, get_augmentation_transforms
 
 def main(p):
     current_time = datetime.now().strftime("%Y%m%d-%H%M%S")
-    if FLAGS.ubelix == 1:
+    # if True:
+    if p['ubelix'] == 1:
         wandb.init(project='Contrastive-Graphs', config=p, name=current_time, notes=f"{p['dataset']} - {p['backbone']}")
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
@@ -55,5 +56,7 @@ if __name__ == '__main__':
 
     if FLAGS.ubelix == 0:
         config['batch_size'] = 2
+
+    config['ubelix'] = FLAGS.ubelix
 
     main(config)

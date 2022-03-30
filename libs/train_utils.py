@@ -41,10 +41,10 @@ def train(p, train_loader, model, optimizer, epoch, device):
 
         # Here are the metrics
         acc1 = accuracy(logits, labels, topk=(1,))
-        top1.update(acc1[0], input_batch.size(0))
+        top1.update(acc1[0])#, input_batch.size(0))
 
         # Display progress
-        if i % p['logs']['writing_freq'] == 0:
+        if i % p['logs']['writing_freq'] == 0 and p['ubelix']:
             progress.to_wandb(i, prefix='train')
             # progress.display(i)
 
