@@ -70,7 +70,7 @@ class SegGCN(nn.Module):
         sp_seg = sp_seg.view(-1)
 
         map = {j.item(): i for i, j in enumerate(sp_seg.unique())}
-        seg_mapped = torch.tensor([map[x.item()] for x in sp_seg])
+        seg_mapped = torch.tensor([map[x.item()] for x in sp_seg], device=embeddings.device)
 
         features_sp = scatter_mean(embeddings, seg_mapped, dim=0)  # SP x dim (all the SP in the batch)
         data.x = features_sp
