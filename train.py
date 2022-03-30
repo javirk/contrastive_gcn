@@ -21,7 +21,7 @@ def main(p):
 
     aug_transformations = get_augmentation_transforms(p)
     dataset = MNISTSuperpixel('data/', train=True, aug_transform=aug_transformations, download=True)
-    dataloader = DataLoader(dataset, batch_size=p['batch_size'], shuffle=True)
+    dataloader = DataLoader(dataset, batch_size=p['batch_size'], shuffle=True, drop_last=True)
 
     backbone = UNet(n_channels=1, n_classes=2)
     gcn = GCN(num_features=p['gcn_kwargs']['ndim'], hidden_channels=p['gcn_kwargs']['hidden_channels'],
