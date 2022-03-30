@@ -90,8 +90,7 @@ class SegGCN(nn.Module):
             cam_sp_offset = (cam_sp + offset) * cam_sp  # all bg's to 0
             cam_sp_offset = cam_sp_offset.view(-1)
             mask_indexes = torch.nonzero(cam_sp_offset).view(-1).squeeze()
-            cam_sp_reduced = torch.div(torch.index_select(cam_sp_offset, index=mask_indexes, dim=0), 2,
-                                       rounding_mode='floor')
+            cam_sp_reduced = torch.index_select(cam_sp_offset, index=mask_indexes, dim=0) - 1
 
         with torch.no_grad():
             cam_sp_offset_aug = torch.index_select(cam_sp_offset, index=data_aug.keep_nodes, dim=0)
