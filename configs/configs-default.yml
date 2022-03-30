@@ -23,4 +23,4 @@ gcn_kwargs:
   output_dim: 32
 
 logs:
-  writing_freq: 4
+  writing_freq: 25
