@@ -94,7 +94,8 @@ class SegGCN(nn.Module):
                                        rounding_mode='floor')
 
         with torch.no_grad():
-            out_aug = self.graph(data_aug.x, data_aug.edge_index, batch=cam_sp_offset)
+            cam_sp_offset_aug = torch.index_select(cam_sp_offset, index=data_aug.keep_nodes, dim=0)
+            out_aug = self.graph(data_aug.x, data_aug.edge_index, batch=cam_sp_offset_aug)
             prototypes_aug = out_aug['avg_pool'][1:]  # Because index 0 is background
             feat_aug = nn.functional.normalize(prototypes_aug, dim=1)  # B x dim_gcn
             # prototypes = cam_sp2
