@@ -9,12 +9,13 @@ from models.builder import SegGCN
 from models.backbones.unet import UNet
 import libs.utils as utils
 from libs.train_utils import train
-from libs.common_config import get_optimizer, get_augmentation_transforms
+from libs.common_config import get_optimizer, get_augmentation_transforms, adjust_learning_rate
 
 
 def main(p):
     current_time = datetime.now().strftime("%Y%m%d-%H%M%S")
-    # if True:
+    p['checkpoint'] = f'./ckpt/{current_time}.pth'
+
     if p['ubelix'] == 1:
         wandb.init(project='Contrastive-Graphs', config=p, name=current_time, notes=f"{p['dataset']} - {p['backbone']}")
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
@@ -33,7 +34,14 @@ def main(p):
     optimizer = get_optimizer(p, model.parameters())
 
     for epoch in range(p['epochs']):
+        lr = adjust_learning_rate(p, optimizer, epoch)
+        print('Adjusted learning rate to {:.5f}'.format(lr))
+
         train(p, dataloader, model, optimizer, epoch, device)
+
+        torch.save({'optimizer': optimizer.state_dict(), 'model': model.state_dict(),
+                    'epoch': epoch + 1},
+                   p['checkpoint'])
 
     wandb.finish()
 

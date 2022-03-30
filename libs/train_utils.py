@@ -45,7 +45,8 @@ def train(p, train_loader, model, optimizer, epoch, device):
 
         # Display progress
         if i % p['logs']['writing_freq'] == 0 and p['ubelix']:
-            progress.to_wandb(i, prefix='train')
+            step_logging = epoch * len(train_loader) + i
+            progress.to_wandb(step_logging, prefix='train')
             # progress.display(i)
 
 
