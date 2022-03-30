@@ -64,7 +64,7 @@ class SegGCN(nn.Module):
         cam = rearrange(cam, 'b c h w -> (b h w) c')
 
         # We don't care about the numbers themselves, only that they are distinct between batches. Then we map them to be continuous
-        offset_mask = torch.arange(0, bs)
+        offset_mask = torch.arange(0, bs, device=data.sp_seg.device)
         offset_mask = (data.sp_seg.max() + 1) * offset_mask
         sp_seg = data.sp_seg + offset_mask.view(-1, 1, 1)
         sp_seg = sp_seg.view(-1)
