@@ -51,6 +51,7 @@ class SegGCN(nn.Module):
         """
         # batch_size = img.shape[0]
         bs, c, h, w = cam.size()
+        keep_indices_aug = torch.where(data_aug.keep_nodes)[0]
 
         out_dict = self.backbone(img)
         seg = out_dict['seg']  # This has to be compared to the CAM. B x C x H x W
@@ -74,7 +75,7 @@ class SegGCN(nn.Module):
 
         features_sp = scatter_mean(embeddings, seg_mapped, dim=0)  # SP x dim (all the SP in the batch)
         data.x = features_sp
-        data_aug.x = torch.index_select(features_sp, index=data_aug.keep_nodes, dim=0)
+        data_aug.x = torch.index_select(features_sp, index=keep_indices_aug, dim=0)
 
         feat_ori = self.graph(data.x, data.edge_index)['features']
         feat_ori = nn.functional.normalize(feat_ori, dim=1)  # SP x dim_gcn
@@ -93,7 +94,7 @@ class SegGCN(nn.Module):
             cam_sp_reduced = torch.index_select(cam_sp_offset, index=mask_indexes, dim=0) - 1
 
         with torch.no_grad():
-            cam_sp_offset_aug = torch.index_select(cam_sp_offset, index=data_aug.keep_nodes, dim=0)
+            cam_sp_offset_aug = torch.index_select(cam_sp_offset, index=keep_indices_aug, dim=0)
             out_aug = self.graph(data_aug.x, data_aug.edge_index, batch=cam_sp_offset_aug)
             prototypes_aug = out_aug['avg_pool'][1:]  # Because index 0 is background
             feat_aug = nn.functional.normalize(prototypes_aug, dim=1)  # B x dim_gcn

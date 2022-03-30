@@ -35,18 +35,20 @@ class NodeDropping(BaseTransform):
 
     def __call__(self, data):
         all_nodes = np.array(list(range(data.x.shape[0])))
-        keep_nodes = torch.tensor(np.random.choice(all_nodes, size=int(all_nodes[-1] * self.percentage_keep),
+        keep_indices = torch.tensor(np.random.choice(all_nodes, size=int(all_nodes[-1] * self.percentage_keep),
                                                    replace=False))
 
-        edge_index, edge_attr = subgraph(keep_nodes, data.edge_index, relabel_nodes=True)
-        x = torch.index_select(data.x, index=keep_nodes, dim=0)
-        pos = torch.index_select(data.pos, index=keep_nodes, dim=0)
+        edge_index, edge_attr = subgraph(keep_indices, data.edge_index, relabel_nodes=True)
+        x = torch.index_select(data.x, index=keep_indices, dim=0)
+        pos = torch.index_select(data.pos, index=keep_indices, dim=0)
 
         data.edge_index = edge_index
         data.x = x
         data.pos = pos
         if self.return_nodes:
-            data.keep_nodes = keep_nodes
+            keep_nodes = torch.zeros(len(all_nodes))
+            keep_nodes[keep_indices] = 1
+            data.keep_nodes = keep_nodes#.unsqueeze(0)
 
         return data
 

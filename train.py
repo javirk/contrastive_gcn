@@ -55,7 +55,7 @@ if __name__ == '__main__':
     config = utils.read_config(FLAGS.config)
 
     if FLAGS.ubelix == 0:
-        config['batch_size'] = 8
+        config['batch_size'] = 4
 
     config['ubelix'] = FLAGS.ubelix
 
