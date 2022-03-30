@@ -26,6 +26,7 @@ def main(p):
               output_dim=p['gcn_kwargs']['output_dim'])
 
     model = SegGCN(p, backbone=backbone, graph_network=gcn)
+    model.to(device)
 
     optimizer = get_optimizer(p, model.parameters())
 
