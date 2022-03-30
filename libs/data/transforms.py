@@ -29,8 +29,9 @@ class EdgePerturbation(BaseTransform):
 
 
 class NodeDropping(BaseTransform):
-    def __init__(self, percentage_keep=0.9):
+    def __init__(self, percentage_keep=0.9, return_nodes=True):
         self.percentage_keep = percentage_keep
+        self.return_nodes = return_nodes
 
     def __call__(self, data):
         all_nodes = np.array(list(range(data.x.shape[0])))
@@ -44,6 +45,8 @@ class NodeDropping(BaseTransform):
         data.edge_index = edge_index
         data.x = x
         data.pos = pos
+        if self.return_nodes:
+            data.keep_nodes = keep_nodes
 
         return data
 

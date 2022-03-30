@@ -14,7 +14,8 @@ from libs.common_config import get_optimizer, get_augmentation_transforms
 
 def main(p):
     current_time = datetime.now().strftime("%Y%m%d-%H%M%S")
-    wandb.init(project='Contrastive-Graphs', config=p, name=current_time, notes=f"{p['dataset']} - {p['backbone']}")
+    if FLAGS.ubelix == 1:
+        wandb.init(project='Contrastive-Graphs', config=p, name=current_time, notes=f"{p['dataset']} - {p['backbone']}")
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
     aug_transformations = get_augmentation_transforms(p)

@@ -74,7 +74,7 @@ class SegGCN(nn.Module):
 
         features_sp = scatter_mean(embeddings, seg_mapped, dim=0)  # SP x dim (all the SP in the batch)
         data.x = features_sp
-        data_aug.x = features_sp
+        data_aug.x = torch.index_select(features_sp, index=data_aug.keep_nodes, dim=0)
 
         feat_ori = self.graph(data.x, data.edge_index)['features']
         feat_ori = nn.functional.normalize(feat_ori, dim=1)  # SP x dim_gcn
@@ -86,9 +86,6 @@ class SegGCN(nn.Module):
                 cam_sp = cam_sp[:, 1]
             cam_sp = (cam_sp > 0.5).long()
 
-            # cam_sp_oh = utils.one_hot(cam_sp, 2)
-
-            # offset = torch.arange(0, 2 * bs, 2).to(cam_sp.device)
             offset = batch_info  # * 2
             cam_sp_offset = (cam_sp + offset) * cam_sp  # all bg's to 0
             cam_sp_offset = cam_sp_offset.view(-1)
