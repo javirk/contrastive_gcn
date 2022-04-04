@@ -109,7 +109,10 @@ def eval_kmeans(p, val_dataset, n_clusters=21, compute_metrics=False, verbose=Tr
     if verbose:
         print('Evaluation of semantic segmentation ')
         print('mIoU is %.2f' % (100 * eval_result['mIoU']))
-        class_names = val_dataset.get_class_names()
+        try:
+            class_names = val_dataset.get_class_names()
+        except AttributeError:
+            class_names = [str(x) for x in range(len(n_classes))]
         for i_part in range(n_classes):
             print('IoU class %s is %.2f' % (class_names[i_part], 100 * jac[i_part]))
 
