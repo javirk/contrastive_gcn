@@ -48,6 +48,9 @@ def main(p):
 
 if __name__ == '__main__':
     config = utils.read_config(FLAGS.config)
+    config_env = utils.read_config('configs/env_configs.yml')
+    config.update(config_env)
+
     config['ubelix'] = FLAGS.ubelix
 
     if FLAGS.ubelix == 0:

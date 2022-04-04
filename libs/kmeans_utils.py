@@ -20,7 +20,7 @@ N_JOBS = 8
 
 
 def eval_kmeans(p, val_dataset, n_clusters=21, compute_metrics=False, verbose=True):
-    n_classes = p['num_classes'] + int(p['has_bg'])
+    n_classes = p['num_classes']
 
     # Iterate
     tp = [0] * n_classes
@@ -120,7 +120,6 @@ def eval_kmeans(p, val_dataset, n_clusters=21, compute_metrics=False, verbose=Tr
 
 @torch.no_grad()
 def save_embeddings_to_disk(p, val_loader, model, device, n_clusters=21, seed=1234):
-
     print('Save embeddings to disk ...')
     model.eval()
     ptr = 0
@@ -165,6 +164,7 @@ def save_embeddings_to_disk(p, val_loader, model, device, n_clusters=21, seed=12
 
         if ptr % 300 == 0:
             print('Computing prototype {}'.format(ptr))
+        break # TODO
 
     # perform kmeans
     all_prototypes = all_prototypes.cpu().numpy()
@@ -172,7 +172,7 @@ def save_embeddings_to_disk(p, val_loader, model, device, n_clusters=21, seed=12
     n_clusters = n_clusters - 1
     print('Kmeans clustering to {} clusters'.format(n_clusters))
 
-    print('Starting kmeans with scikit', 'green')
+    print('Starting kmeans with scikit')
     pca = PCA(n_components=32, whiten=True)
     all_prototypes = pca.fit_transform(all_prototypes)
     kmeans = MiniBatchKMeans(n_clusters=n_clusters, batch_size=1000, random_state=seed)
@@ -182,9 +182,10 @@ def save_embeddings_to_disk(p, val_loader, model, device, n_clusters=21, seed=12
     for i, fname, pred in zip(range(len(val_loader.sampler)), names, prediction_kmeans):
         prediction = all_cams[i].copy()
         prediction[prediction == 1] = pred + 1
-        np.save(os.path.join(p['embedding_dir'], fname + '.npy'), prediction)
+        np.save(os.path.join(p['embeddings_dir'], fname + '.npy'), prediction)
         if i % 300 == 0:
             print('Saving results: {} of {} objects'.format(i, len(val_loader.dataset)))
+        break  # TODO
 
 
 def _hungarian_match(flat_preds, flat_targets, preds_k, targets_k, metric='acc'):
