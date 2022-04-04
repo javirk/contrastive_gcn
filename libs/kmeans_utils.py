@@ -160,7 +160,7 @@ def save_embeddings_to_disk(p, val_loader, model, device, n_clusters=21, seed=12
         ptr += bs
 
         for name in batch['name']:
-            names.append(name.item())
+            names.append(str(name.item()))
 
         if ptr % 300 == 0:
             print('Computing prototype {}'.format(ptr))
