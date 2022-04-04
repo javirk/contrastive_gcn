@@ -41,7 +41,7 @@ def eval_kmeans(p, val_dataset, n_clusters=21, compute_metrics=False, verbose=Tr
         embedding = np.load(filename)
 
         # Check where ground-truth is valid. Append valid pixels to the array.
-        gt = sample['semseg']
+        gt = sample['semseg'][0].numpy()
         valid = (gt != 255)  # I think this is only for PASCAL.
         n_valid = np.sum(valid)
         all_gt[offset_:offset_ + n_valid] = gt[valid]
@@ -128,8 +128,6 @@ def save_embeddings_to_disk(p, val_loader, model, device, n_clusters=21, seed=12
     all_cams = torch.zeros((len(val_loader.sampler), p['resolution'], p['resolution']))
     names = []
     for i, batch in enumerate(val_loader):
-        if i > 0:  ## DEBUG
-            break
         input_batch = batch['img'].to(device)
         data_batch = batch['data'].to(device)
         batch_info = data_batch.batch
@@ -165,8 +163,6 @@ def save_embeddings_to_disk(p, val_loader, model, device, n_clusters=21, seed=12
         if ptr % 300 == 0:
             print('Computing prototype {}'.format(ptr))
 
-        break
-
     # perform kmeans
     all_prototypes = all_prototypes.cpu().numpy()
     all_cams = all_cams.cpu().numpy()
@@ -186,7 +182,6 @@ def save_embeddings_to_disk(p, val_loader, model, device, n_clusters=21, seed=12
         np.save(os.path.join(p['embeddings_dir'], fname + '.npy'), prediction)
         if i % 300 == 0:
             print('Saving results: {} of {} objects'.format(i, len(val_loader.dataset)))
-        break  # TODO
 
 
 def _hungarian_match(flat_preds, flat_targets, preds_k, targets_k, metric='acc'):
