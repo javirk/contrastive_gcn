@@ -21,6 +21,7 @@ class MNISTSuperpixel(MNIST):
         self.transforms_conversion = T.Compose([transforms.ToSLIC(n_segments=75, compactness=0.25, add_seg=True,
                                                                   enforce_connectivity=True),
                                                 transforms.RadiusGraph(r=8)])
+        self.data_names = list(range(len(self.data)))
 
     def __getitem__(self, index):
         img, target = self.data[index].unsqueeze(0).float(), int(self.targets[index])
@@ -36,7 +37,9 @@ class MNISTSuperpixel(MNIST):
         if self.aug_transform:
             data_aug = self.aug_transform(data_aug)
 
-        return {'img': img, 'data': data, 'data_aug': data_aug}
+        semseg = (img > 0.5).int()
+
+        return {'img': img, 'data': data, 'data_aug': data_aug, 'name': self.data_names[index], 'semseg': semseg}
 
 
 def visualize(image, data):

@@ -3,6 +3,7 @@ import torch.nn as nn
 import numpy as np
 import yaml
 import wandb
+import shutil
 
 
 @torch.no_grad()
@@ -81,3 +82,9 @@ class ProgressMeter(object):
     def to_wandb(self, batch, prefix=None):
         entries = {f'{prefix}/{i.name}': i.avg for i in self.meters}
         wandb.log(entries, step=batch)
+
+def copy_file(src, dst):
+    try:
+        shutil.copy(src, dst)
+    except shutil.SameFileError:
+        pass

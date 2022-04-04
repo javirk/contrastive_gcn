@@ -1,7 +1,15 @@
-batch_size: 128
 dataset: MNIST # No effect yet
-
+num_classes: 2
+resolution: 28
 backbone: unet # No effect yet
+
+pretrained_model: 20220330-154611.pth
+
+train_kwargs:
+  batch_size: 128
+
+val_kwargs:
+  batch_size: 128
 
 # Optimizer
 epochs: 40

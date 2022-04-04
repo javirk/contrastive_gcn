@@ -14,10 +14,6 @@ class SegGCN(nn.Module):
 
         self.backbone = backbone
         self.graph = graph_network
-        if self.training:
-            self.forward = self.forward_train
-        else:
-            self.forward = self.forward_inference
 
         self.dim = p['gcn_kwargs']['output_dim']
         self.register_buffer("queue", torch.randn(self.dim, self.K))
@@ -25,6 +21,25 @@ class SegGCN(nn.Module):
         self.register_buffer("queue_ptr", torch.zeros(1, dtype=torch.long))
 
         self.bce = BalancedCrossEntropyLoss(size_average=True)
+
+        self._load_pretrained(p)
+
+    def _load_pretrained(self, p):
+        device = next(self.backbone.parameters()).device
+        if p['pretrained_model'] != 'None':
+            state_dict = torch.load('ckpt/' + p['pretrained_model'], map_location=device)
+            if 'model' in state_dict.keys():
+                state_dict = state_dict['model']
+            new_state = {}
+            for k, v in state_dict.items():
+                if 'module' in k:
+                    k = k.rsplit('module.')[1]
+                new_state[k] = v
+            msg = self.load_state_dict(new_state, strict=False)
+            print(msg)
+        else:
+            print('No pretrained weights have been loaded')
+        return
 
     @torch.no_grad()
     def _dequeue_and_enqueue(self, keys):
@@ -40,6 +55,12 @@ class SegGCN(nn.Module):
         ptr = (ptr + batch_size) % self.K  # move pointer
 
         self.queue_ptr[0] = ptr
+
+    def forward(self, *args):
+        if self.training:
+            return self.forward_train(*args)
+        else:
+            return self.forward_val(*args)
 
     def forward_train(self, img, cam, data, data_aug):
         """
@@ -64,7 +85,9 @@ class SegGCN(nn.Module):
         embeddings = rearrange(embeddings, 'b d h w -> (b h w) d')
         cam = rearrange(cam, 'b c h w -> (b h w) c')
 
-        # We don't care about the numbers themselves, only that they are distinct between batches. Then we map them to be continuous
+        # The embeddings have to be averaged in the superpixel region.
+        # We don't care about the numbers themselves, only that they are distinct between samples in batch.
+        # Then we map them to be continuous
         offset_mask = torch.arange(0, bs, device=data.sp_seg.device)
         offset_mask = (data.sp_seg.max() + 1) * offset_mask
         sp_seg = data.sp_seg + offset_mask.view(-1, 1, 1)
@@ -110,6 +133,34 @@ class SegGCN(nn.Module):
         self._dequeue_and_enqueue(feat_aug)
 
         return logits, cam_sp_reduced, cam_loss
+
+    @torch.no_grad()
+    def forward_val(self, img, data):
+        bs = img.shape[0]
+
+        out_dict = self.backbone(img)
+        embeddings = out_dict['embeddings']  # B x dim x H x W
+        pred_cam = out_dict['seg']
+
+        embeddings = rearrange(embeddings, 'b d h w -> (b h w) d')
+
+        # The embeddings have to be averaged in the superpixel region.
+        # We don't care about the numbers themselves, only that they are distinct between samples in batch.
+        # Then we map them to be continuous
+        offset_mask = torch.arange(0, bs, device=data.sp_seg.device)
+        offset_mask = (data.sp_seg.max() + 1) * offset_mask
+        sp_seg = data.sp_seg + offset_mask.view(-1, 1, 1)
+        sp_seg = sp_seg.view(-1)
+
+        map = {j.item(): i for i, j in enumerate(sp_seg.unique())}
+        seg_mapped = torch.tensor([map[x.item()] for x in sp_seg], device=embeddings.device)
+
+        features_sp = scatter_mean(embeddings, seg_mapped, dim=0)  # SP x dim (all the SP in the batch)
+
+        data.x = features_sp
+
+        features = self.graph(data.x, data.edge_index)['features']
+        return features, pred_cam, seg_mapped
 
 
 # utils
