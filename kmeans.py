@@ -20,7 +20,7 @@ parser.add_argument('-u', '--ubelix',
                     type=int,
                     help='Running on ubelix (0 is no)')
 parser.add_argument('-crf', '--crf-postprocessing',
-                    type=bool,
+                    type=utils.str2bool,
                     default=True,
                     help='Apply CRF postprocessing')
 
