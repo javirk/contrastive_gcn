@@ -20,7 +20,7 @@ class MNISTSuperpixel(MNIST):
         self.aug_transform = aug_transform
         self.transforms_conversion = T.Compose([transforms.ToSLIC(n_segments=75, compactness=0.25, add_seg=True,
                                                                   enforce_connectivity=True),
-                                                transforms.RadiusGraph(r=8)])
+                                                transforms.RadiusGraph(r=8, loop=True)])
         self.data_names = list(range(len(self.data)))
 
     def __getitem__(self, index):

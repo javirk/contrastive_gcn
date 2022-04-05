@@ -15,6 +15,7 @@ from sklearn.decomposition import PCA
 from scipy.optimize import linear_sum_assignment
 from joblib import Parallel, delayed
 import libs.utils as utils
+from libs.crf import dense_crf
 
 N_JOBS = 8
 
@@ -49,6 +50,9 @@ def eval_kmeans(p, val_dataset, n_clusters=21, compute_metrics=False, verbose=Tr
         # Possibly reshape embedding to match gt.
         if embedding.shape != gt.shape:
             embedding = cv2.resize(embedding, gt.shape[::-1], interpolation=cv2.INTER_NEAREST)
+
+        if p['crf_postprocessing']:
+            embedding = dense_crf(sample['img'], embedding)
 
         # Put the reshaped ground truth in the array
         all_pixels[offset_:offset_ + n_valid, ] = embedding[valid]

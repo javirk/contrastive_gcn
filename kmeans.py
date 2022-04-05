@@ -19,6 +19,10 @@ parser.add_argument('-u', '--ubelix',
                     default=1,
                     type=int,
                     help='Running on ubelix (0 is no)')
+parser.add_argument('-crf', '--crf-postprocessing',
+                    type=bool,
+                    default=True,
+                    help='Apply CRF postprocessing')
 
 FLAGS, unparsed = parser.parse_known_args()
 
@@ -40,7 +44,7 @@ def main(p):
     # Kmeans Clustering
     n_clusters = 2
     results_miou = []
-    save_embeddings_to_disk(p, dataloader, model, n_clusters=n_clusters, seed=1234, device=device)
+    # save_embeddings_to_disk(p, dataloader, model, n_clusters=n_clusters, seed=1234, device=device)
     eval_stats = eval_kmeans(p, dataset, n_clusters=n_clusters, verbose=True)
     results_miou.append(eval_stats['mIoU'])
     print('Average mIoU is %2.1f' % results_miou[0])
@@ -50,6 +54,7 @@ if __name__ == '__main__':
     config = utils.read_config(FLAGS.config)
     config_env = utils.read_config('configs/env_configs.yml')
     config.update(config_env)
+    config.update(vars(FLAGS))
 
     config['ubelix'] = FLAGS.ubelix
 
