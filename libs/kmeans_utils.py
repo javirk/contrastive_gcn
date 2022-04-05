@@ -53,6 +53,7 @@ def eval_kmeans(p, val_dataset, n_clusters=21, compute_metrics=False, verbose=Tr
 
         if p['crf_postprocessing']:
             embedding = dense_crf(sample['img'], embedding)
+            embedding = embedding.argmax(axis=0)  # It's a np array
 
         # Put the reshaped ground truth in the array
         all_pixels[offset_:offset_ + n_valid, ] = embedding[valid]
