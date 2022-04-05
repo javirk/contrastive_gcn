@@ -44,7 +44,7 @@ def main(p):
     # Kmeans Clustering
     n_clusters = 2
     results_miou = []
-    # save_embeddings_to_disk(p, dataloader, model, n_clusters=n_clusters, seed=1234, device=device)
+    save_embeddings_to_disk(p, dataloader, model, n_clusters=n_clusters, seed=1234, device=device)
     eval_stats = eval_kmeans(p, dataset, n_clusters=n_clusters, verbose=True)
     results_miou.append(eval_stats['mIoU'])
     print('Average mIoU is %2.1f' % results_miou[0])
