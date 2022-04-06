@@ -62,16 +62,16 @@ class SegGCN(nn.Module):
         else:
             return self.forward_val(*args)
 
-    def forward_train(self, img, cam, data, data_aug):
+    def forward_train(self, img, mask, data, data_aug):
         """
         :param img:
-        :param cam: BxCxHxW
+        :param mask: Can be CAM or Saliency. BxCxHxW
         :param data:
         :param data_aug:
         :return:
         """
         # batch_size = img.shape[0]
-        bs, c, h, w = cam.size()
+        bs, c, h, w = mask.size()
         keep_indices_aug = torch.where(data_aug.keep_nodes)[0]
 
         out_dict = self.backbone(img)
@@ -80,10 +80,10 @@ class SegGCN(nn.Module):
         batch_info = data['batch']
         # dim = embeddings.shape[1]
 
-        cam_loss = self.bce(seg, cam)
+        cam_loss = self.bce(seg, mask)
 
         embeddings = rearrange(embeddings, 'b d h w -> (b h w) d')
-        cam = rearrange(cam, 'b c h w -> (b h w) c')
+        mask = rearrange(mask, 'b c h w -> (b h w) c')
 
         # The embeddings have to be averaged in the superpixel region.
         # We don't care about the numbers themselves, only that they are distinct between samples in batch.
@@ -104,20 +104,18 @@ class SegGCN(nn.Module):
         feat_ori = nn.functional.normalize(feat_ori, dim=1)  # SP x dim_gcn
 
         with torch.no_grad():
-            cam_sp = scatter_mean(cam, seg_mapped, dim=0)  # SP x C
-            if c == 2:
-                # This only works for MNIST (two classes). For more classes the next line alone (after if) should work
-                cam_sp = cam_sp[:, 1]
-            cam_sp = (cam_sp > 0.5).long()
+            mask_sp = scatter_mean(mask, seg_mapped, dim=0)  # SP x C
+            mask_sp = mask_sp[:, 0]
+            mask_sp = (mask_sp > 0.5).long()
 
             offset = batch_info  # * 2
-            cam_sp_offset = (cam_sp + offset) * cam_sp  # all bg's to 0
-            cam_sp_offset = cam_sp_offset.view(-1)
-            mask_indexes = torch.nonzero(cam_sp_offset).view(-1).squeeze()
-            cam_sp_reduced = torch.index_select(cam_sp_offset, index=mask_indexes, dim=0) - 1
+            mask_sp_offset = (mask_sp + offset) * mask_sp  # all bg's to 0
+            mask_sp_offset = mask_sp_offset.view(-1)
+            mask_indexes = torch.nonzero(mask_sp_offset).view(-1).squeeze()
+            cam_sp_reduced = torch.index_select(mask_sp_offset, index=mask_indexes, dim=0) - 1
 
         with torch.no_grad():
-            cam_sp_offset_aug = torch.index_select(cam_sp_offset, index=keep_indices_aug, dim=0)
+            cam_sp_offset_aug = torch.index_select(mask_sp_offset, index=keep_indices_aug, dim=0)
             out_aug = self.graph(data_aug.x, data_aug.edge_index, batch=cam_sp_offset_aug)
             prototypes_aug = out_aug['avg_pool'][1:]  # Because index 0 is background
             feat_aug = nn.functional.normalize(prototypes_aug, dim=1)  # B x dim_gcn

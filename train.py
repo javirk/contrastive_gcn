@@ -10,7 +10,7 @@ from models.builder import SegGCN
 from models.backbones.unet import UNet
 import libs.utils as utils
 from libs.train_utils import train
-from libs.common_config import get_optimizer, get_augmentation_transforms, adjust_learning_rate
+from libs.common_config import get_optimizer, get_augmentation_transforms, adjust_learning_rate, get_dataset, get_image_transforms
 
 parser = argparse.ArgumentParser()
 
@@ -35,11 +35,13 @@ def main(p):
         wandb.init(project='Contrastive-Graphs', config=p, name=current_time, notes=f"{p['dataset']} - {p['backbone']}")
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
-    aug_transformations = get_augmentation_transforms(p)
-    dataset = MNISTSuperpixel('data/', train=True, aug_transform=aug_transformations, download=True)
+    aug_tf = get_augmentation_transforms(p)
+    image_tf = get_image_transforms()
+    # dataset = MNISTSuperpixel('data/', train=True, aug_transform=aug_transformations, download=True)
+    dataset = get_dataset(p, root='data/', image_set='train', transform=image_tf, aug_transformations=aug_tf)
     dataloader = DataLoader(dataset, batch_size=p['train_kwargs']['batch_size'], shuffle=True, drop_last=True)
 
-    backbone = UNet(n_channels=1, n_classes=2)
+    backbone = UNet(n_channels=3, n_classes=1)
     gcn = GCN(num_features=p['gcn_kwargs']['ndim'], hidden_channels=p['gcn_kwargs']['hidden_channels'],
               output_dim=p['gcn_kwargs']['output_dim'])
 

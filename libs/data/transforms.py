@@ -2,6 +2,8 @@ import torch
 import numpy as np
 from torch_geometric.utils import dropout_adj, subgraph
 from torch_geometric.transforms import BaseTransform
+from albumentations.pytorch import ToTensorV2
+from torchvision.transforms.functional import to_tensor
 
 
 class EdgePerturbation(BaseTransform):
@@ -54,3 +56,19 @@ class NodeDropping(BaseTransform):
 
     def __repr__(self) -> str:
         return f'{self.__class__.__name__}'
+
+
+class ToTensor(ToTensorV2):
+    def __init__(self, transpose_mask=False, always_apply=True, p=1.0):
+        super(ToTensor, self).__init__(always_apply=always_apply, p=p)
+        self.transpose_mask = transpose_mask
+
+    @property
+    def targets(self):
+        return {"image": self.apply, "mask": self.apply, "masks": self.apply_to_masks}
+
+    def apply(self, img, **params):
+        return to_tensor(img)
+
+    def apply_to_masks(self, masks, **params):
+        return [self.apply(mask, **params) for mask in masks]

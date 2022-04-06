@@ -9,6 +9,7 @@ from typing import Optional
 _true_set = {'yes', 'true', 't', 'y', '1'}
 _false_set = {'no', 'false', 'f', 'n', '0'}
 
+
 def str2bool(value, raise_exc=False):
     if isinstance(value, str):
         value = value.lower()
@@ -20,7 +21,6 @@ def str2bool(value, raise_exc=False):
     if raise_exc:
         raise ValueError('Expected "%s"' % '", "'.join(_true_set | _false_set))
     return None
-
 
 
 @torch.no_grad()
@@ -39,7 +39,6 @@ def get_cam_segmentation(seg):
     coarse_onehot[:, 0] = (coarse[:, 0] == 0).float()
     coarse_onehot[:, 1] = (coarse[:, 0] == 1).float()
     return coarse_onehot
-
 
 
 def one_hot(labels: torch.Tensor,
@@ -87,7 +86,6 @@ def one_hot(labels: torch.Tensor,
     batch_size, height, width = labels.shape
     one_hot = torch.zeros(batch_size, num_classes, height, width, device=device, dtype=dtype)
     return one_hot.scatter_(1, labels.unsqueeze(1), 1.0)  # + eps
-
 
 
 def read_config(path):
@@ -142,6 +140,7 @@ class ProgressMeter(object):
     def to_wandb(self, batch, prefix=None):
         entries = {f'{prefix}/{i.name}': i.avg for i in self.meters}
         wandb.log(entries, step=batch)
+
 
 def copy_file(src, dst):
     try:

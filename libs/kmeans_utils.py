@@ -144,7 +144,8 @@ def save_embeddings_to_disk(p, val_loader, model, device, n_clusters=21, seed=12
 
         bs = input_batch.shape[0]
 
-        cam = torch.softmax(cam, dim=1).argmax(dim=1)  # Maybe this will be saliency later. Make it int {0,1}
+        # cam = torch.softmax(cam, dim=1).argmax(dim=1)  # Maybe this will be saliency later. Make it int {0,1}
+        cam = cam[:, 1]  # Some sort of saliency like this. And values are not int
         cam_sp = rearrange(cam, 'b h w -> (b h w)')
         cam_sp = scatter_mean(cam_sp, index=sp_map, dim=0)
 

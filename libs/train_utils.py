@@ -16,11 +16,12 @@ def train(p, train_loader, model, optimizer, epoch, device):
         input_batch = batch['img'].to(device)
         data_batch = batch['data'].to(device)
         data_aug_batch = batch['data_aug'].to(device)
+        mask = batch['sal'].to(device)
 
         optimizer.zero_grad()
-        cam = utils.get_cam_segmentation(input_batch)
+        # cam = utils.get_cam_segmentation(input_batch)
 
-        logits, labels, cam_loss = model(input_batch, cam, data_batch, data_aug_batch)
+        logits, labels, cam_loss = model(input_batch, mask, data_batch, data_aug_batch)
 
         # Use E-Net weighting for calculating the pixel-wise loss.
         uniq, freq = torch.unique(labels, return_counts=True)
