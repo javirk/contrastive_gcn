@@ -69,6 +69,6 @@ if __name__ == '__main__':
     config['ubelix'] = FLAGS.ubelix
 
     if FLAGS.ubelix == 0:
-        config['train_kwargs']['batch_size'] = 4
+        config['train_kwargs']['batch_size'] = 16
 
     main(config)
