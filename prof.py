@@ -1,32 +1,14 @@
-# profile_dir = "path/to/run/tbprofile/"
-# profiler = torch.profiler.profile(
-#     schedule=schedule,  # see the profiler docs for details on scheduling
-#     on_trace_ready=torch.profiler.tensorboard_trace_handler(profile_dir)
-#     with_stack=True)
-#
-# with profiler:
-#     ...  # run the code you want to profile here
-#     # see the profiler docs for detailed usage information
-#
-# # create a wandb Artifact
-# profile_art = wandb.Artifact("trace", type="profile")
-# # add the pt.trace.json files to the Artifact
-# profile_art.add_file(glob.glob(profile_dir + ".pt.trace.json"))
-# # log the artifact
-# profile_art.save()
-
 import torch
 import torch.nn as nn
 from torch_geometric.loader import DataLoader
 import wandb
 import argparse
-from datetime import datetime
 from torch.nn.functional import cross_entropy
 from models.gcn import GCN
 from models.builder import SegGCN
 from models.backbones.unet import UNet
 import libs.utils as utils
-from libs.common_config import get_optimizer, get_augmentation_transforms, adjust_learning_rate, get_dataset, get_image_transforms
+from libs.common_config import get_optimizer, get_augmentation_transforms, get_dataset, get_image_transforms
 
 parser = argparse.ArgumentParser()
 
@@ -49,7 +31,7 @@ def main(p):
         schedule=schedule,
         on_trace_ready=torch.profiler.tensorboard_trace_handler(profile_dir),
         with_stack=True)
-    wandb.init(project='Contrastive-Graphs', config=p, name='profiler_test')
+    wandb.init(project='Contrastive-Graphs', config=p, notes='profiler_test')
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
     aug_tf = get_augmentation_transforms(p)

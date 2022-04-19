@@ -40,4 +40,4 @@
 module load Anaconda3
 eval "$(conda shell.bash hook)"
 conda activate pygt
-PYTHONPATH="../" python ./profiler/prof.py --configs configs/configs-default.yaml
+PYTHONPATH="../" python ./prof.py --configs configs/configs-default.yaml
