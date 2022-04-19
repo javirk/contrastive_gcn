@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 from torch_geometric.loader import DataLoader
 import wandb
+import glob
 import argparse
 from torch.nn.functional import cross_entropy
 from models.gcn import GCN
@@ -25,7 +26,7 @@ FLAGS, unparsed = parser.parse_known_args()
 
 
 def main(p):
-    schedule = torch.profiler.schedule(warmup=1, active=2, repeat=2, wait=0)
+    schedule = torch.profiler.schedule(warmup=1, active=2, repeat=1, wait=0)
     profile_dir = "profiler/output"
     profiler = torch.profiler.profile(
         schedule=schedule,
@@ -73,13 +74,13 @@ def main(p):
             loss = contrastive_loss + cam_loss
             loss.backward()
             optimizer.step()
-            if i > 8:
+            if i > 3:
                 break
 
     # create a wandb Artifact
     profile_art = wandb.Artifact("trace", type="profile")
     # add the pt.trace.json files to the Artifact
-    profile_art.add_file(profile_dir + ".pt.trace.json")
+    profile_art.add_file(glob.glob(profile_dir + ".pt.trace.json"))
     # log the artifact
     profile_art.save()
 
