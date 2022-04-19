@@ -1,6 +1,6 @@
 dataset: PASCAL
 num_classes: 2
-resolution: 28
+resolution: 224
 backbone: unet # No effect yet
 
 pretrained_model: None
@@ -31,4 +31,4 @@ gcn_kwargs:
   output_dim: 32
 
 logs:
-  writing_freq: 10
+  writing_freq: 5

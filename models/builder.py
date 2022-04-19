@@ -116,10 +116,10 @@ class SegGCN(nn.Module):
 
         with torch.no_grad():
             cam_sp_offset_aug = torch.index_select(mask_sp_offset, index=keep_indices_aug, dim=0)
+            assert len(cam_sp_offset_aug.unique()) == bs + 1  # For stability
             out_aug = self.graph(data_aug.x, data_aug.edge_index, batch=cam_sp_offset_aug)
             prototypes_aug = out_aug['avg_pool'][1:]  # Because index 0 is background
             feat_aug = nn.functional.normalize(prototypes_aug, dim=1)  # B x dim_gcn
-            # prototypes = cam_sp2
 
         q = torch.index_select(feat_ori, index=mask_indexes, dim=0)
         l_batch = torch.matmul(q, feat_aug.t())  # Unmasked SP x B

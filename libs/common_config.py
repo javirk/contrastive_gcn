@@ -51,12 +51,15 @@ def get_augmentation_transforms(p):
     # Add something to use the configurations
     return T.Compose([NodeDropping(percentage_keep=0.90), EdgePerturbation()])
 
-def get_image_transforms():
+
+def get_image_transforms(p):
     import albumentations as A
     return A.Compose([
-        A.Resize(224, 224), A.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)), ToTensor()
+        A.Resize(p['resolution'], p['resolution']), A.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
+        ToTensor()
     ])
     # return T.Compose([T.ToTensor(), T.Resize((224, 224)), T.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))])
+
 
 def get_dataset(p, root, image_set, transform=None, aug_transformations=None):
     if p['dataset'] == 'MNIST':
