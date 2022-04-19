@@ -15,14 +15,14 @@ val_kwargs:
 epochs: 40
 optimizer: sgd
 optimizer_kwargs:
-   lr: 0.004
+   lr: 0.01
    weight_decay: 0.0001
    momentum: 0.9
    nesterov: False
 scheduler: poly
 
 seggcn_kwargs:
-  K: 256
+  K: 128
   T: 0.1
 
 gcn_kwargs:
