@@ -1,5 +1,4 @@
 import torch
-torch.manual_seed(0)
 import torch.nn as nn
 from torch_geometric.loader import DataLoader
 import wandb
