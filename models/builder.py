@@ -83,7 +83,7 @@ class SegGCN(nn.Module):
         cam_loss = self.bce(seg, mask)
 
         embeddings = rearrange(embeddings, 'b d h w -> (b h w) d')
-        mask = rearrange(mask, 'b c h w -> (b h w) c')
+        mask_twodim = rearrange(mask, 'b c h w -> (b h w) c')
 
         # The embeddings have to be averaged in the superpixel region.
         # We don't care about the numbers themselves, only that they are distinct between samples in batch.
@@ -93,8 +93,8 @@ class SegGCN(nn.Module):
         sp_seg = data.sp_seg + offset_mask.view(-1, 1, 1)
         sp_seg = sp_seg.view(-1)
 
-        map = {j.item(): i for i, j in enumerate(sp_seg.unique())}
-        seg_mapped = torch.tensor([map[x.item()] for x in sp_seg], device=embeddings.device)
+        map_ = {j.item(): i for i, j in enumerate(sp_seg.unique())}
+        seg_mapped = torch.tensor([map_[x.item()] for x in sp_seg], device=embeddings.device)
 
         features_sp = scatter_mean(embeddings, seg_mapped, dim=0)  # SP x dim (all the SP in the batch)
         data.x = features_sp
@@ -104,9 +104,9 @@ class SegGCN(nn.Module):
         feat_ori = nn.functional.normalize(feat_ori, dim=1)  # SP x dim_gcn
 
         with torch.no_grad():
-            mask_sp = scatter_mean(mask, seg_mapped, dim=0)  # SP x C
+            mask_sp = scatter_mean(mask_twodim, seg_mapped, dim=0)  # SP x C
             mask_sp = mask_sp[:, 0]
-            mask_sp = (mask_sp > 0.5).long()
+            mask_sp = (mask_sp > 0.5).long()  # More pixels belong to the saliency than not
 
             offset = batch_info  # * 2
             mask_sp_offset = (mask_sp + offset) * mask_sp  # all bg's to 0
@@ -122,7 +122,7 @@ class SegGCN(nn.Module):
             # prototypes = cam_sp2
 
         q = torch.index_select(feat_ori, index=mask_indexes, dim=0)
-        l_batch = torch.matmul(q, feat_aug.t())
+        l_batch = torch.matmul(q, feat_aug.t())  # Unmasked SP x B
         negatives = self.queue.clone().detach()
         l_mem = torch.matmul(q, negatives)
         logits = torch.cat([l_batch, l_mem], dim=1)

@@ -49,7 +49,7 @@ def adjust_learning_rate(p, optimizer, epoch):
 
 def get_augmentation_transforms(p):
     # Add something to use the configurations
-    return T.Compose([NodeDropping(), EdgePerturbation()])
+    return T.Compose([NodeDropping(percentage_keep=0.90), EdgePerturbation()])
 
 def get_image_transforms():
     import albumentations as A

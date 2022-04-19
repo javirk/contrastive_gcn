@@ -26,7 +26,7 @@ class Pascal(Dataset):
         self.transform = transform
         # self.sal_transform = self._get_saliency_transformations()
         self.aug_transform = aug_transform
-        self.transforms_conversion = T.Compose([transforms.ToSLIC(n_segments=100, compactness=10, add_seg=True,
+        self.transforms_conversion = T.Compose([transforms.ToSLIC(n_segments=500, compactness=10, add_seg=True,
                                                                   enforce_connectivity=True),
                                                 transforms.RadiusGraph(r=100, loop=True)])
 

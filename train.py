@@ -1,4 +1,5 @@
 import torch
+torch.manual_seed(0)
 import torch.nn as nn
 from torch_geometric.loader import DataLoader
 import wandb
@@ -39,7 +40,8 @@ def main(p):
     image_tf = get_image_transforms()
     # dataset = MNISTSuperpixel('data/', train=True, aug_transform=aug_transformations, download=True)
     dataset = get_dataset(p, root='data/', image_set='train', transform=image_tf, aug_transformations=aug_tf)
-    dataloader = DataLoader(dataset, batch_size=p['train_kwargs']['batch_size'], shuffle=True, drop_last=True)
+    dataloader = DataLoader(dataset, batch_size=p['train_kwargs']['batch_size'], shuffle=True, drop_last=True,
+                            num_workers=num_workers)
 
     backbone = UNet(n_channels=3, n_classes=1)
     gcn = GCN(num_features=p['gcn_kwargs']['ndim'], hidden_channels=p['gcn_kwargs']['hidden_channels'],
@@ -68,7 +70,10 @@ if __name__ == '__main__':
     config = utils.read_config(FLAGS.config)
     config['ubelix'] = FLAGS.ubelix
 
+    num_workers = 8
+
     if FLAGS.ubelix == 0:
-        config['train_kwargs']['batch_size'] = 16
+        config['train_kwargs']['batch_size'] = 2
+        num_workers = 1
 
     main(config)

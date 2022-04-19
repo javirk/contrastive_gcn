@@ -31,7 +31,7 @@ class EdgePerturbation(BaseTransform):
 
 
 class NodeDropping(BaseTransform):
-    def __init__(self, percentage_keep=0.9, return_nodes=True):
+    def __init__(self, percentage_keep=0.95, return_nodes=True):
         self.percentage_keep = percentage_keep
         self.return_nodes = return_nodes
 
@@ -50,7 +50,7 @@ class NodeDropping(BaseTransform):
         if self.return_nodes:
             keep_nodes = torch.zeros(len(all_nodes))
             keep_nodes[keep_indices] = 1
-            data.keep_nodes = keep_nodes#.unsqueeze(0)
+            data.keep_nodes = keep_nodes #.unsqueeze(0)
 
         return data
 
