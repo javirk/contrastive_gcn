@@ -1,0 +1,117 @@
+# profile_dir = "path/to/run/tbprofile/"
+# profiler = torch.profiler.profile(
+#     schedule=schedule,  # see the profiler docs for details on scheduling
+#     on_trace_ready=torch.profiler.tensorboard_trace_handler(profile_dir)
+#     with_stack=True)
+#
+# with profiler:
+#     ...  # run the code you want to profile here
+#     # see the profiler docs for detailed usage information
+#
+# # create a wandb Artifact
+# profile_art = wandb.Artifact("trace", type="profile")
+# # add the pt.trace.json files to the Artifact
+# profile_art.add_file(glob.glob(profile_dir + ".pt.trace.json"))
+# # log the artifact
+# profile_art.save()
+
+import torch
+import torch.nn as nn
+from torch_geometric.loader import DataLoader
+import wandb
+import argparse
+from datetime import datetime
+from torch.nn.functional import cross_entropy
+from models.gcn import GCN
+from models.builder import SegGCN
+from models.backbones.unet import UNet
+import libs.utils as utils
+from libs.common_config import get_optimizer, get_augmentation_transforms, adjust_learning_rate, get_dataset, get_image_transforms
+
+parser = argparse.ArgumentParser()
+
+parser.add_argument('-c', '--config',
+                    default='configs/configs-default.yml',
+                    type=str,
+                    help='Path to the config file')
+parser.add_argument('-u', '--ubelix',
+                    default=1,
+                    type=int,
+                    help='Running on ubelix (0 is no)')
+
+FLAGS, unparsed = parser.parse_known_args()
+
+
+def main(p):
+    schedule = torch.profiler.schedule(warmup=1, active=2, repeat=2, wait=0)
+    profile_dir = "profiler/output"
+    profiler = torch.profiler.profile(
+        schedule=schedule,
+        on_trace_ready=torch.profiler.tensorboard_trace_handler(profile_dir),
+        with_stack=True)
+    wandb.init(project='Contrastive-Graphs', config=p, name='profiler_test')
+    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+
+    aug_tf = get_augmentation_transforms(p)
+    image_tf = get_image_transforms(p)
+    dataset = get_dataset(p, root='data/', image_set='train', transform=image_tf, aug_transformations=aug_tf)
+    dataloader = DataLoader(dataset, batch_size=p['train_kwargs']['batch_size'], shuffle=True, drop_last=True,
+                            num_workers=num_workers)
+
+    backbone = UNet(n_channels=3, n_classes=1)
+    gcn = GCN(num_features=p['gcn_kwargs']['ndim'], hidden_channels=p['gcn_kwargs']['hidden_channels'],
+              output_dim=p['gcn_kwargs']['output_dim'])
+
+    model = SegGCN(p, backbone=backbone, graph_network=gcn)
+    model.to(device)
+    model = nn.DataParallel(model)
+    model.train()
+
+    optimizer = get_optimizer(p, model.parameters())
+
+    with profiler:
+        for i, batch in enumerate(dataloader):
+            input_batch = batch['img'].to(device)
+            data_batch = batch['data'].to(device)
+            data_aug_batch = batch['data_aug'].to(device)
+            mask = batch['sal'].to(device)
+
+            optimizer.zero_grad()
+
+            logits, labels, cam_loss = model(input_batch, mask, data_batch, data_aug_batch)
+            # Use E-Net weighting for calculating the pixel-wise loss.
+            uniq, freq = torch.unique(labels, return_counts=True)
+            p_class = torch.zeros(logits.shape[1], dtype=torch.float32).to(device)
+            p_class_non_zero_classes = freq.float() / labels.numel()
+            p_class[uniq] = p_class_non_zero_classes
+            w_class = 1 / torch.log(1.02 + p_class)
+            contrastive_loss = cross_entropy(logits, labels, weight=w_class, reduction='mean')
+
+            # Calculate total loss and update meters
+            loss = contrastive_loss + cam_loss
+            loss.backward()
+            optimizer.step()
+            if i > 8:
+                break
+
+    # create a wandb Artifact
+    profile_art = wandb.Artifact("trace", type="profile")
+    # add the pt.trace.json files to the Artifact
+    profile_art.add_file(profile_dir + ".pt.trace.json")
+    # log the artifact
+    profile_art.save()
+
+    wandb.finish()
+
+
+if __name__ == '__main__':
+    config = utils.read_config(FLAGS.config)
+    config['ubelix'] = FLAGS.ubelix
+
+    num_workers = 8
+
+    if FLAGS.ubelix == 0:
+        config['train_kwargs']['batch_size'] = 2
+        num_workers = 1
+
+    main(config)
