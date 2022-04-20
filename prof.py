@@ -54,7 +54,7 @@ def main(p):
     with profiler:
         for i, batch in enumerate(dataloader):
             print(i)
-            if i > 3:
+            if i > 2:
                 break
             input_batch = batch['img'].to(device)
             data_batch = batch['data'].to(device)
@@ -63,19 +63,7 @@ def main(p):
 
             optimizer.zero_grad()
 
-            logits, labels, cam_loss = model(input_batch, mask, data_batch, data_aug_batch)
-            # Use E-Net weighting for calculating the pixel-wise loss.
-            uniq, freq = torch.unique(labels, return_counts=True)
-            p_class = torch.zeros(logits.shape[1], dtype=torch.float32).to(device)
-            p_class_non_zero_classes = freq.float() / labels.numel()
-            p_class[uniq] = p_class_non_zero_classes
-            w_class = 1 / torch.log(1.02 + p_class)
-            contrastive_loss = cross_entropy(logits, labels, weight=w_class, reduction='mean')
-
-            # Calculate total loss and update meters
-            loss = contrastive_loss + cam_loss
-            loss.backward()
-            optimizer.step()
+            _, _, _ = model(input_batch, mask, data_batch, data_aug_batch)
             profiler.step()
 
     # create a wandb Artifact
