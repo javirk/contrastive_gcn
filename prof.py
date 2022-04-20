@@ -26,7 +26,7 @@ FLAGS, unparsed = parser.parse_known_args()
 
 
 def main(p):
-    schedule = torch.profiler.schedule(warmup=1, active=2, repeat=1, wait=0)
+    schedule = torch.profiler.schedule(warmup=1, active=1, repeat=1, wait=0)
     profile_dir = "profiler/output/"
     profiler = torch.profiler.profile(schedule=schedule,
                                       on_trace_ready=torch.profiler.tensorboard_trace_handler(profile_dir),
