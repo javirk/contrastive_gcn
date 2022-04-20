@@ -40,7 +40,7 @@ def main(p):
     # dataset = MNISTSuperpixel('data/', train=True, aug_transform=aug_transformations, download=True)
     dataset = get_dataset(p, root='data/', image_set='train', transform=image_tf, aug_transformations=aug_tf)
     dataloader = DataLoader(dataset, batch_size=p['train_kwargs']['batch_size'], shuffle=True, drop_last=True,
-                            num_workers=num_workers)
+                            num_workers=num_workers, pin_memory=True)
 
     backbone = UNet(n_channels=3, n_classes=1)
     gcn = GCN(num_features=p['gcn_kwargs']['ndim'], hidden_channels=p['gcn_kwargs']['hidden_channels'],
@@ -48,7 +48,7 @@ def main(p):
 
     model = SegGCN(p, backbone=backbone, graph_network=gcn)
     model.to(device)
-    model = nn.DataParallel(model)
+    model = nn.parallel.DistributedDataParallel(model)
     model.train()
 
     optimizer = get_optimizer(p, model.parameters())
