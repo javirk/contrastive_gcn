@@ -27,11 +27,10 @@ FLAGS, unparsed = parser.parse_known_args()
 
 def main(p):
     schedule = torch.profiler.schedule(warmup=1, active=2, repeat=1, wait=0)
-    profile_dir = "profiler/output"
-    profiler = torch.profiler.profile(
-        schedule=schedule,
-        on_trace_ready=torch.profiler.tensorboard_trace_handler(profile_dir),
-        with_stack=True)
+    profile_dir = "profiler/output/"
+    profiler = torch.profiler.profile(schedule=schedule,
+                                      on_trace_ready=torch.profiler.tensorboard_trace_handler(profile_dir),
+                                      with_stack=True)
     wandb.init(project='Contrastive-Graphs', config=p, notes='profiler_test')
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
@@ -54,6 +53,9 @@ def main(p):
 
     with profiler:
         for i, batch in enumerate(dataloader):
+            print(i)
+            if i > 3:
+                break
             input_batch = batch['img'].to(device)
             data_batch = batch['data'].to(device)
             data_aug_batch = batch['data_aug'].to(device)
@@ -74,13 +76,12 @@ def main(p):
             loss = contrastive_loss + cam_loss
             loss.backward()
             optimizer.step()
-            if i > 3:
-                break
+            profiler.step()
 
     # create a wandb Artifact
     profile_art = wandb.Artifact("trace", type="profile")
     # add the pt.trace.json files to the Artifact
-    profile_art.add_file(glob.glob(profile_dir + ".pt.trace.json"))
+    profile_art.add_file(glob.glob(profile_dir + "*.pt.trace.json")[0])
     # log the artifact
     profile_art.save()
 
@@ -91,7 +92,7 @@ if __name__ == '__main__':
     config = utils.read_config(FLAGS.config)
     config['ubelix'] = FLAGS.ubelix
 
-    num_workers = 8
+    num_workers = 4
 
     if FLAGS.ubelix == 0:
         config['train_kwargs']['batch_size'] = 2
