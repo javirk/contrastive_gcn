@@ -6,7 +6,7 @@ backbone: unet # No effect yet
 pretrained_model: None
 
 train_kwargs:
-  batch_size: 64
+  batch_size: 16
 
 val_kwargs:
   batch_size: 128
