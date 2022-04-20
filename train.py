@@ -48,7 +48,7 @@ def main(p):
 
     model = SegGCN(p, backbone=backbone, graph_network=gcn)
     model.to(device)
-    model = nn.parallel.DistributedDataParallel(model)
+    model = nn.DataParallel(model)
     model.train()
 
     optimizer = get_optimizer(p, model.parameters())
