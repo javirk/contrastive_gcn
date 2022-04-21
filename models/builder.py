@@ -90,22 +90,26 @@ class SegGCN(nn.Module):
         # The embeddings have to be averaged in the superpixel region.
         # We don't care about the numbers themselves, only that they are distinct between samples in batch.
         # Then we map them to be continuous
+        sp_seg_bs = data.sp_seg.view(bs, -1).max(1).values
+        sp_seg_bs = sp_seg_bs.roll(1)
+        sp_seg_bs[0] = 0
+
         offset_mask = torch.arange(0, bs, device=data.sp_seg.device)
-        offset_mask = (data.sp_seg.max() + 1) * offset_mask
+        # offset_mask = (data.sp_seg.max() + 1) * offset_mask
+        # sp_seg = data.sp_seg + offset_mask.view(-1, 1, 1)
+        # sp_seg = sp_seg.view(-1)
+        # map_ = {j.item(): i for i, j in enumerate(sp_seg.unique())}
+        # seg_mapped = torch.tensor([map_[x.item()] for x in sp_seg], device=embeddings.device)
+
+        offset_mask = torch.cumsum(sp_seg_bs, dim=0) + offset_mask
+
         sp_seg = data.sp_seg + offset_mask.view(-1, 1, 1)
         sp_seg = sp_seg.view(-1)
 
-        map_ = {j.item(): i for i, j in enumerate(sp_seg.unique())}
-        curr_time = time()
-        seg_mapped = torch.tensor([map_[x.item()] for x in sp_seg], device=embeddings.device)
+        # print(f'First mapping: {time() - curr_time}')
+        # curr_time = time()
 
-        print(f'First mapping: {time() - curr_time}')
-        curr_time = time()
-        other_mapped = utils.mapping_tensor(sp_seg.unique(), sp_seg)
-        other_mapped = other_mapped.to(embeddings.device)
-        print(f'Second mapping: {time() - curr_time}')
-
-        features_sp = scatter_mean(embeddings, seg_mapped, dim=0)  # SP x dim (all the SP in the batch)
+        features_sp = scatter_mean(embeddings, sp_seg, dim=0)  # SP x dim (all the SP in the batch)
         data.x = features_sp
         data_aug.x = torch.index_select(features_sp, index=keep_indices_aug, dim=0)
 
@@ -113,7 +117,7 @@ class SegGCN(nn.Module):
         feat_ori = nn.functional.normalize(feat_ori, dim=1)  # SP x dim_gcn
 
         with torch.no_grad():
-            mask_sp = scatter_mean(mask_twodim, seg_mapped, dim=0)  # SP x C
+            mask_sp = scatter_mean(mask_twodim, sp_seg, dim=0)  # SP x C
             mask_sp = mask_sp[:, 0]
             mask_sp = (mask_sp > 0.5).long()  # More pixels belong to the saliency than not
 

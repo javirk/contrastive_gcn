@@ -147,12 +147,3 @@ def copy_file(src, dst):
         shutil.copy(src, dst)
     except shutil.SameFileError:
         pass
-
-def mapping_tensor(A, B):
-    A_enc = torch.zeros((int(A.max()) + 1,) * 2)
-    A_enc[A, torch.arange(A.shape[0])] = 1
-
-    v = torch.argmax(A_enc, dim=0)
-    B_enc = torch.zeros(A_enc.shape[0], B.shape[0])
-    B_enc[B, torch.arange(B.shape[0])] = 1
-    return v @ B_enc.long()
