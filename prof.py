@@ -53,10 +53,8 @@ def main(p):
     optimizer = get_optimizer(p, model.parameters())
 
     with profiler:
-        start_time = time()
         for i, batch in enumerate(dataloader):
             print(i)
-            print(f'Load batch: {time() - start_time}')
             start_time_it = time()
             if i > 2:
                 break
@@ -64,12 +62,9 @@ def main(p):
             data_batch = batch['data'].to(device)
             data_aug_batch = batch['data_aug'].to(device)
             mask = batch['sal'].to(device)
-            print(f'Send to GPU: {time() - start_time_it}')
 
             _, _, _ = model(input_batch, mask, data_batch, data_aug_batch)
-            print(f'Run model: {time() - start_time_it}')
             profiler.step()
-            start_time = time()
 
     # create a wandb Artifact
     # profile_art = wandb.Artifact("trace", type="profile")
