@@ -95,12 +95,15 @@ class SegGCN(nn.Module):
         sp_seg = data.sp_seg + offset_mask.view(-1, 1, 1)
         sp_seg = sp_seg.view(-1)
 
-        curr_time = time()
         map_ = {j.item(): i for i, j in enumerate(sp_seg.unique())}
-        print(f'Map_: {time() - curr_time}')
         curr_time = time()
         seg_mapped = torch.tensor([map_[x.item()] for x in sp_seg], device=embeddings.device)
-        print(f'seg_mapped: {time() - curr_time}')
+
+        print(f'First mapping: {time() - curr_time}')
+        curr_time = time()
+        other_mapped = utils.mapping_tensor(sp_seg.unique(), sp_seg)
+        other_mapped = other_mapped.to(embeddings.device)
+        print(f'Second mapping: {time() - curr_time}')
 
         features_sp = scatter_mean(embeddings, seg_mapped, dim=0)  # SP x dim (all the SP in the batch)
         data.x = features_sp
