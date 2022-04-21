@@ -6,13 +6,13 @@ backbone: unet # No effect yet
 pretrained_model: None
 
 train_kwargs:
-  batch_size: 16
+  batch_size: 64
 
 val_kwargs:
   batch_size: 128
 
 # Optimizer
-epochs: 40
+epochs: 120
 optimizer: sgd
 optimizer_kwargs:
    lr: 0.01
