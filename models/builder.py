@@ -71,16 +71,11 @@ class SegGCN(nn.Module):
         :param data_aug:
         :return:
         """
-        curr_time = time()
-
         # batch_size = img.shape[0]
         bs, c, h, w = mask.size()
         keep_indices_aug = torch.where(data_aug.keep_nodes)[0]
 
         out_dict = self.backbone(img)
-
-        print(f'Backbone: {time() - curr_time}')
-        curr_time = time()
 
         seg = out_dict['seg']  # This has to be compared to the CAM. B x C x H x W
         embeddings = out_dict['embeddings']  # B x dim x H x W
@@ -88,11 +83,14 @@ class SegGCN(nn.Module):
         # dim = embeddings.shape[1]
 
         cam_loss = self.bce(seg, mask)
-        print(f'BCE: {time() - curr_time}')
+
         curr_time = time()
 
         embeddings = rearrange(embeddings, 'b d h w -> (b h w) d')
         mask_twodim = rearrange(mask, 'b c h w -> (b h w) c')
+
+        print(f'First rearrange: {time() - curr_time}')
+        curr_time = time()
 
         # The embeddings have to be averaged in the superpixel region.
         # We don't care about the numbers themselves, only that they are distinct between samples in batch.
@@ -102,21 +100,23 @@ class SegGCN(nn.Module):
         sp_seg = data.sp_seg + offset_mask.view(-1, 1, 1)
         sp_seg = sp_seg.view(-1)
 
+        print(f'SP SEG: {time() - curr_time}')
+        curr_time = time()
+
         map_ = {j.item(): i for i, j in enumerate(sp_seg.unique())}
         seg_mapped = torch.tensor([map_[x.item()] for x in sp_seg], device=embeddings.device)
+
+        print(f'Mapping: {time() - curr_time}')
+        curr_time = time()
 
         features_sp = scatter_mean(embeddings, seg_mapped, dim=0)  # SP x dim (all the SP in the batch)
         data.x = features_sp
         data_aug.x = torch.index_select(features_sp, index=keep_indices_aug, dim=0)
 
-        print(f'Extract features: {time() - curr_time}')
-        curr_time = time()
+        print(f'Scatter mean: {time() - curr_time}')
 
         feat_ori = self.graph(data.x, data.edge_index)['features']
         feat_ori = nn.functional.normalize(feat_ori, dim=1)  # SP x dim_gcn
-
-        print(f'Graph: {time() - curr_time}')
-        curr_time = time()
 
         with torch.no_grad():
             mask_sp = scatter_mean(mask_twodim, seg_mapped, dim=0)  # SP x C
@@ -136,9 +136,6 @@ class SegGCN(nn.Module):
             prototypes_aug = out_aug['avg_pool'][1:]  # Because index 0 is background
             feat_aug = nn.functional.normalize(prototypes_aug, dim=1)  # B x dim_gcn
 
-        print(f'Augmented graph: {time() - curr_time}')
-        curr_time = time()
-
         q = torch.index_select(feat_ori, index=mask_indexes, dim=0)
         l_batch = torch.matmul(q, feat_aug.t())  # Unmasked SP x B
         negatives = self.queue.clone().detach()
@@ -146,11 +143,8 @@ class SegGCN(nn.Module):
         logits = torch.cat([l_batch, l_mem], dim=1)
 
         logits /= self.T
-        print(f'Last: {time() - curr_time}')
-        curr_time = time()
 
         self._dequeue_and_enqueue(feat_aug)
-        print(f'Queue: {time() - curr_time}')
 
         return logits, cam_sp_reduced, cam_loss
 

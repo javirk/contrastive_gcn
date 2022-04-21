@@ -56,7 +56,7 @@ def main(p):
         for i, batch in enumerate(dataloader):
             print(i)
             start_time_it = time()
-            if i > 2:
+            if i > 1:
                 break
             input_batch = batch['img'].to(device)
             data_batch = batch['data'].to(device)
