@@ -76,10 +76,11 @@ class OutConv(nn.Module):
 
 
 class UNet(nn.Module):
-    def __init__(self, n_channels, n_classes, bilinear=False):
+    def __init__(self, p, n_channels, bilinear=False):
         super(UNet, self).__init__()
         self.n_channels = n_channels
-        self.n_classes = n_classes
+        n_classes = p['num_classes']
+        embedding_dim = p['gcn_kwargs']['ndim']
         self.bilinear = bilinear
 
         self.inc = DoubleConv(n_channels, 64)
@@ -92,8 +93,9 @@ class UNet(nn.Module):
         self.up2 = Up(512, 256 // factor, bilinear)
         self.up3 = Up(256, 128 // factor, bilinear)
         self.up4 = Up(128, 64, bilinear)
+
         self.outc = OutConv(64, n_classes)
-        # self.out_emb = OutConv(64, emb_dim) We use the output of the last up4 layer for the embeddings
+        self.out_emb = OutConv(64, embedding_dim)
 
     def forward(self, x):
         x1 = self.inc(x)
@@ -105,5 +107,6 @@ class UNet(nn.Module):
         x = self.up2(x, x3)
         x = self.up3(x, x2)
         x = self.up4(x, x1)
-        logits = self.outc(x)
-        return {'seg': logits, 'embeddings': x}
+        logits = self.outc(x.clone())
+        embeddings = self.out_emb(x)
+        return {'seg': logits, 'embeddings': embeddings}
