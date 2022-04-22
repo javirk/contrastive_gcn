@@ -54,7 +54,7 @@ def main(p):
         lr = adjust_learning_rate(p, optimizer, epoch)
         print('Adjusted learning rate to {:.5f}'.format(lr))
 
-        losses = utils.AverageMeter('Loss', ':.4e')
+        losses = utils.AverageMeter('Cam_loss', ':.4e')
         progress = utils.ProgressMeter(len(dataloader), [losses], prefix="Epoch: [{}]".format(epoch))
 
         for i, batch in enumerate(dataloader):
@@ -82,7 +82,7 @@ def main(p):
                 grid_sal_gt = torchvision.utils.make_grid(mask[:9], nrow=3)[0].cpu().numpy()
                 grid_images = torchvision.utils.make_grid(input_batch[:9], nrow=3).cpu()
                 grid_images = grid_images.permute((1, 2, 0)).numpy()
-                wandb.Image(grid_images, masks={
+                im_wandb = wandb.Image(grid_images, masks={
                     'predictions': {
                         "mask_data": (grid_sal_pred > 0.5).astype(int),
                         'class_labels': class_labels
@@ -90,8 +90,8 @@ def main(p):
                     'ground_truth': {
                         "mask_data": grid_sal_gt,
                         'class_labels': class_labels
-                    }
-                })
+                    }})
+                wandb.log({'images': im_wandb})
 
         torch.save({'optimizer': optimizer.state_dict(), 'model': backbone.state_dict(),
                     'epoch': epoch + 1}, p['checkpoint'])
