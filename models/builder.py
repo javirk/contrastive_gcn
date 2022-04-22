@@ -152,27 +152,29 @@ class SegGCN(nn.Module):
 
         out_dict = self.backbone(img)
         embeddings = out_dict['embeddings']  # B x dim x H x W
-        pred_cam = out_dict['seg']
+        pred_mask = out_dict['seg']
 
         embeddings = rearrange(embeddings, 'b d h w -> (b h w) d')
 
         # The embeddings have to be averaged in the superpixel region.
         # We don't care about the numbers themselves, only that they are distinct between samples in batch.
         # Then we map them to be continuous
+        sp_seg_bs = data.sp_seg.view(bs, -1).max(1).values
+        sp_seg_bs = sp_seg_bs.roll(1)
+        sp_seg_bs[0] = 0
+
         offset_mask = torch.arange(0, bs, device=data.sp_seg.device)
-        offset_mask = (data.sp_seg.max() + 1) * offset_mask
+        offset_mask = torch.cumsum(sp_seg_bs, dim=0) + offset_mask
+
         sp_seg = data.sp_seg + offset_mask.view(-1, 1, 1)
         sp_seg = sp_seg.view(-1)
 
-        map = {j.item(): i for i, j in enumerate(sp_seg.unique())}
-        seg_mapped = torch.tensor([map[x.item()] for x in sp_seg], device=embeddings.device)
-
-        features_sp = scatter_mean(embeddings, seg_mapped, dim=0)  # SP x dim (all the SP in the batch)
+        features_sp = scatter_mean(embeddings, sp_seg, dim=0)  # SP x dim (all the SP in the batch)
 
         data.x = features_sp
 
         features = self.graph(data.x, data.edge_index)['features']
-        return features, pred_cam, seg_mapped
+        return features, pred_mask, sp_seg
 
 
 # utils

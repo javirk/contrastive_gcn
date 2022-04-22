@@ -32,7 +32,7 @@ def train(p, train_loader, model, optimizer, epoch, device):
         contrastive_loss = cross_entropy(logits, labels, weight=w_class, reduction='mean')
 
         # Calculate total loss and update meters
-        loss = contrastive_loss + cam_loss
+        loss = contrastive_loss * p['train_kwargs']['lambda_contrastive'] + cam_loss
         contrastive_losses.update(contrastive_loss.item())
         cam_losses.update(cam_loss.item())
         losses.update(loss.item())

@@ -140,19 +140,19 @@ def save_embeddings_to_disk(p, val_loader, model, device, n_clusters=21, seed=12
         data_batch = batch['data'].to(device)
         batch_info = data_batch.batch
 
-        features, cam, sp_map = model(input_batch, data_batch)
+        features, mask, sp_map = model(input_batch, data_batch)
 
         bs = input_batch.shape[0]
 
         # cam = torch.softmax(cam, dim=1).argmax(dim=1)  # Maybe this will be saliency later. Make it int {0,1}
-        cam = cam[:, 1]  # Some sort of saliency like this. And values are not int
-        cam_sp = rearrange(cam, 'b h w -> (b h w)')
-        cam_sp = scatter_mean(cam_sp, index=sp_map, dim=0)
+        mask = mask[:, 0]  # Some sort of saliency like this. And values are not int
+        mask_sp = rearrange(mask, 'b h w -> (b h w)')
+        mask_sp = scatter_mean(mask_sp, index=sp_map, dim=0)
 
         # features: SP x dim
         # cam: B x C x H x W --> B x H x W --> SP
 
-        prototypes = (cam_sp * (cam_sp > 0.5).float()).unsqueeze(1) * features  # SP x dim
+        prototypes = (mask_sp * (mask_sp > 0.5).float()).unsqueeze(1) * features  # SP x dim
         prototypes = scatter_sum(prototypes, index=batch_info, dim=0)  # B x dim
         prototypes = nn.functional.normalize(prototypes, dim=1)
 
