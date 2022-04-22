@@ -163,11 +163,11 @@ def save_embeddings_to_disk(p, val_loader, model, device, n_clusters=21, seed=12
         # prototypes = torch.bmm(output, cam_proto * (cam_proto > 0.5).float()).squeeze()  # B x dim
         # prototypes = nn.functional.normalize(prototypes, dim=1)
         all_prototypes[ptr: ptr + bs] = prototypes
-        all_cams[ptr: ptr + bs, :, :] = (cam > 0.5).float()
+        all_cams[ptr: ptr + bs, :, :] = (mask > 0.5).float()
         ptr += bs
 
         for name in batch['name']:
-            names.append(str(name.item()))
+            names.append(str(name))
 
         if ptr % 300 == 0:
             print('Computing prototype {}'.format(ptr))
