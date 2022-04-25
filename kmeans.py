@@ -36,7 +36,7 @@ def main(p):
     dataset = get_dataset(p, root='data/', image_set='train', transform=image_tf)
     dataloader = DataLoader(dataset, batch_size=p['val_kwargs']['batch_size'], shuffle=False, drop_last=False,
                             num_workers=num_workers, pin_memory=True)
-    backbone = UNet(p, n_channels=3)
+    backbone = UNet(p, n_channels=3, n_classes=1)
     gcn = GCN(num_features=p['gcn_kwargs']['ndim'], hidden_channels=p['gcn_kwargs']['hidden_channels'],
               output_dim=p['gcn_kwargs']['output_dim'])
 

@@ -76,10 +76,9 @@ class OutConv(nn.Module):
 
 
 class UNet(nn.Module):
-    def __init__(self, p, n_channels, bilinear=False):
+    def __init__(self, p, n_channels, n_classes, bilinear=False):
         super(UNet, self).__init__()
         self.n_channels = n_channels
-        n_classes = p['num_classes']
         embedding_dim = p['gcn_kwargs']['ndim']
         self.bilinear = bilinear
 
