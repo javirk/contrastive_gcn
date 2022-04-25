@@ -8,8 +8,9 @@ from libs.losses import BalancedCrossEntropyLoss
 
 
 class SegGCN(nn.Module):
-    def __init__(self, p, backbone, graph_network):
+    def __init__(self, p, backbone, graph_network, debug=True):
         super(SegGCN, self).__init__()
+        self.debug = debug
         self.K = p['seggcn_kwargs']['K']
         self.T = p['seggcn_kwargs']['T']
 
@@ -71,7 +72,7 @@ class SegGCN(nn.Module):
         :param data_aug:
         :return:
         """
-        # batch_size = img.shape[0]
+        dict_return = {}
         bs, c, h, w = mask.size()
         keep_indices_aug = torch.where(data_aug.keep_nodes)[0]
 
@@ -144,7 +145,13 @@ class SegGCN(nn.Module):
 
         self._dequeue_and_enqueue(feat_aug)
 
-        return logits, cam_sp_reduced, cam_loss
+        if self.debug:
+            q_var = torch.mean(torch.var(q, dim=0))
+            aug_var = torch.mean(torch.var(feat_aug, dim=1))
+            dict_return['q_var'] = q_var
+            dict_return['aug_var'] = aug_var
+
+        return logits, cam_sp_reduced, cam_loss, dict_return
 
     @torch.no_grad()
     def forward_val(self, img, data):

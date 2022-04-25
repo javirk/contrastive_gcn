@@ -8,8 +8,14 @@ def train(p, train_loader, model, optimizer, epoch, device):
     contrastive_losses = utils.AverageMeter('Contrastive', ':.4e')
     cam_losses = utils.AverageMeter('Cam_loss', ':.4e')
     top1 = utils.AverageMeter('Acc@1', ':6.2f')
-    progress = utils.ProgressMeter(len(train_loader), [losses, contrastive_losses, cam_losses, top1],
-                                   prefix="Epoch: [{}]".format(epoch))
+    progress_vars = [losses, contrastive_losses, cam_losses, top1]
+
+    if model.module.debug:
+        q_var = utils.AverageMeter('Q_Var', '.4e')
+        aug_var = utils.AverageMeter('Aug_Var', '.4e')
+        progress_vars.extend([q_var, aug_var])
+
+    progress = utils.ProgressMeter(len(train_loader), progress_vars, prefix="Epoch: [{}]".format(epoch))
     model.train()
 
     for i, batch in enumerate(train_loader):
@@ -21,7 +27,7 @@ def train(p, train_loader, model, optimizer, epoch, device):
         optimizer.zero_grad()
         # cam = utils.get_cam_segmentation(input_batch)
 
-        logits, labels, cam_loss = model(input_batch, mask, data_batch, data_aug_batch)
+        logits, labels, cam_loss, other_res = model(input_batch, mask, data_batch, data_aug_batch)
 
         # Use E-Net weighting for calculating the pixel-wise loss.
         uniq, freq = torch.unique(labels, return_counts=True)
@@ -36,6 +42,9 @@ def train(p, train_loader, model, optimizer, epoch, device):
         contrastive_losses.update(contrastive_loss.item())
         cam_losses.update(cam_loss.item())
         losses.update(loss.item())
+        if model.module.debug:
+            q_var.update(other_res['q_var'])
+            aug_var.update(other_res['aug_var'])
 
         loss.backward()
         optimizer.step()
