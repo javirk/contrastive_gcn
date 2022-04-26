@@ -64,7 +64,7 @@ def get_image_transforms(p):
 def get_dataset(p, root, image_set, transform=None, aug_transformations=None):
     if p['dataset'] == 'MNIST':
         from libs.data.mnist import MNISTSuperpixel
-        train = True if image_set == 'train' else False
+        train = True if 'train' in image_set else False
         return MNISTSuperpixel(root, train=train, aug_transform=aug_transformations, download=True)
 
     elif p['dataset'].upper() == 'PASCAL':

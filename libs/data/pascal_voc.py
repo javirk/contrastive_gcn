@@ -16,11 +16,12 @@ class Pascal(Dataset):
 
     def __init__(self, root: str, image_set: str = "train", sal_type='supervised', transform=None, aug_transform=None):
         self.root = root
-        assert image_set in ('train', 'val')
+        assert image_set in ('train', 'val', 'trainaug')
         self.split = image_set
         assert sal_type.lower() in ('supervised', 'unsupervised')
 
-        _semseg_dir = os.path.join(self.root, 'SegmentationClass')
+        _semseg_name = 'SegmentationClassAug' if 'aug' in image_set else 'SegmentationClass'
+        _semseg_dir = os.path.join(self.root, _semseg_name)
         _image_dir = os.path.join(self.root, 'images')
         _sal_dir = os.path.join(self.root, f'saliency_{sal_type}_model')
         _sp_dir = os.path.join(self.root, 'superpixel')

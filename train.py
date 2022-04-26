@@ -10,7 +10,8 @@ from models.builder import SegGCN
 from models.backbones.unet import UNet
 import libs.utils as utils
 from libs.train_utils import train
-from libs.common_config import get_optimizer, get_augmentation_transforms, adjust_learning_rate, get_dataset, get_image_transforms
+from libs.common_config import get_optimizer, get_augmentation_transforms, adjust_learning_rate, get_dataset,\
+    get_image_transforms
 
 parser = argparse.ArgumentParser()
 
@@ -38,7 +39,7 @@ def main(p):
     aug_tf = get_augmentation_transforms(p)
     image_tf = get_image_transforms(p)
     # dataset = MNISTSuperpixel('data/', train=True, aug_transform=aug_transformations, download=True)
-    dataset = get_dataset(p, root='data/', image_set='train', transform=image_tf, aug_transformations=aug_tf)
+    dataset = get_dataset(p, root='data/', image_set='trainaug', transform=image_tf, aug_transformations=aug_tf)
     dataloader = DataLoader(dataset, batch_size=p['train_kwargs']['batch_size'], shuffle=True, drop_last=True,
                             num_workers=num_workers, pin_memory=True)
 
