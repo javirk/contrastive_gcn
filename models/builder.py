@@ -139,7 +139,7 @@ class SegGCN(nn.Module):
         l_batch = torch.matmul(q, feat_aug.t())  # Unmasked SP x B
         negatives = self.queue.clone().detach()
         l_mem = torch.matmul(q, negatives)
-        logits = torch.cat([l_batch, l_mem], dim=1)
+        logits = torch.cat([l_batch, l_mem], dim=1)  # SP x (BS + Memory size)
 
         logits /= self.T
 
@@ -191,8 +191,7 @@ def concat_all_gather(tensor):
     Performs all_gather operation on the provided tensors.
     *** Warning ***: torch.distributed.all_gather has no gradient.
     """
-    tensors_gather = [torch.ones_like(tensor)
-                      for _ in range(torch.distributed.get_world_size())]
+    tensors_gather = [torch.ones_like(tensor) for _ in range(torch.distributed.get_world_size())]
     torch.distributed.all_gather(tensors_gather, tensor, async_op=False)
 
     output = torch.cat(tensors_gather, dim=0)

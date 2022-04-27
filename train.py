@@ -73,7 +73,7 @@ if __name__ == '__main__':
     num_workers = 8
 
     if FLAGS.ubelix == 0:
-        config['train_kwargs']['batch_size'] = 2
+        config['train_kwargs']['batch_size'] = 4
         num_workers = 1
 
     main(config)

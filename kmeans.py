@@ -33,7 +33,7 @@ def main(p):
 
     # dataset = MNISTSuperpixel('data/', train=False, download=True)
     image_tf = get_image_transforms(p)
-    dataset = get_dataset(p, root='data/', image_set='train', transform=image_tf)
+    dataset = get_dataset(p, root='data/', image_set='val', transform=image_tf)
     dataloader = DataLoader(dataset, batch_size=p['val_kwargs']['batch_size'], shuffle=False, drop_last=False,
                             num_workers=num_workers, pin_memory=True)
     backbone = UNet(p, n_channels=3, n_classes=1)
