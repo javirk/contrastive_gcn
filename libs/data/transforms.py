@@ -65,10 +65,15 @@ class ToTensor(ToTensorV2):
 
     @property
     def targets(self):
-        return {"image": self.apply, "mask": self.apply, "masks": self.apply_to_masks}
+        return {"image": self.apply, "mask": self.apply_to_mask, "masks": self.apply_to_masks}
 
     def apply(self, img, **params):
         return to_tensor(img)
 
+    def apply_to_mask(self, mask, **params):
+        if self.transpose_mask and mask.ndim == 3:
+            mask = mask.transpose(2, 0, 1)
+        return torch.from_numpy(mask)
+
     def apply_to_masks(self, masks, **params):
-        return [self.apply(mask, **params) for mask in masks]
+        return [self.apply_to_mask(mask, **params) for mask in masks]

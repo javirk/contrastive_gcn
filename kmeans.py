@@ -33,7 +33,7 @@ def main(p):
 
     # dataset = MNISTSuperpixel('data/', train=False, download=True)
     image_tf = get_image_transforms(p)
-    dataset = get_dataset(p, root='data/', image_set='val', transform=image_tf)
+    dataset = get_dataset(p, root='data/', image_set='train', transform=image_tf)
     dataloader = DataLoader(dataset, batch_size=p['val_kwargs']['batch_size'], shuffle=False, drop_last=False,
                             num_workers=num_workers, pin_memory=True)
     backbone = UNet(p, n_channels=3, n_classes=1)
@@ -48,7 +48,7 @@ def main(p):
     # Kmeans Clustering
     n_clusters = 21
     results_miou = []
-    save_embeddings_to_disk(p, dataloader, model, n_clusters=n_clusters, seed=1234, device=device)
+    # save_embeddings_to_disk(p, dataloader, model, n_clusters=n_clusters, seed=1234, device=device)
     eval_stats = eval_kmeans(p, dataset, n_clusters=n_clusters, verbose=True)
     results_miou.append(eval_stats['mIoU'])
     print('Average mIoU is %2.1f' % results_miou[0])

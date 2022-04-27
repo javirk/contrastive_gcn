@@ -31,9 +31,13 @@ def eval_kmeans(p, val_dataset, n_clusters=21, compute_metrics=False, verbose=Tr
     # Load all pixel embeddings
     all_pixels = np.zeros((len(val_dataset) * p['resolution'] * p['resolution']), dtype=np.float32)
     all_gt = np.zeros((len(val_dataset) * p['resolution'] * p['resolution']), dtype=np.float32)
+    # all_pixels = np.zeros((10 * p['resolution'] * p['resolution']), dtype=np.float32)
+    # all_gt = np.zeros((10 * p['resolution'] * p['resolution']), dtype=np.float32)
     offset_ = 0
 
     for i, sample in enumerate(val_dataset):
+        # if i >= 10:
+        #     break
         if i % 300 == 0:
             print('Evaluating: {} of {} objects'.format(i, len(val_dataset)))
 
