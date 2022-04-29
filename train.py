@@ -29,7 +29,10 @@ parser.add_argument('-u', '--ubelix',
 FLAGS, unparsed = parser.parse_known_args()
 
 
-def main(rank, world_size, p):
+# def main(rank, world_size, p):
+def main(p):
+    world_size = 0
+    rank = 0
     if world_size > 0:
         os.environ['MASTER_ADDR'] = 'localhost'
         os.environ['MASTER_PORT'] = '12355'
@@ -55,7 +58,7 @@ def main(rank, world_size, p):
     gcn = GCN(num_features=p['gcn_kwargs']['ndim'], hidden_channels=p['gcn_kwargs']['hidden_channels'],
               output_dim=p['gcn_kwargs']['output_dim'])
 
-    model = SegGCN(p, backbone=backbone, graph_network=gcn).to(rank)
+    model = SegGCN(p, backbone=backbone, graph_network=gcn).to(device)
     if world_size > 0:
         model = DistributedDataParallel(model, device_ids=[rank])
     else:
@@ -87,11 +90,11 @@ if __name__ == '__main__':
         config['train_kwargs']['batch_size'] = 4
         num_workers = 1
 
-    # main(config)
+    main(config)
 
-    world_size = torch.cuda.device_count()
-    print('Let\'s use', world_size, 'GPUs!')
-    if world_size > 0:
-        mp.spawn(main, args=(world_size, config), nprocs=world_size, join=True)
-    else:
-        main('cpu', 0, config)
+    # world_size = torch.cuda.device_count()
+    # print('Let\'s use', world_size, 'GPUs!')
+    # if world_size > 0:
+    #     mp.spawn(main, args=(world_size, config), nprocs=world_size, join=True)
+    # else:
+    #     main('cpu', 0, config)
