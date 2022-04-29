@@ -1,7 +1,13 @@
 dataset: PASCAL
 num_classes: 21
 resolution: 224
-backbone: unet # No effect yet
+backbone: resnet18
+backbone_kwargs:  # It only has effect on resnet
+  dilated: True
+head:
+  type: linear
+  model: deeplab
+
 
 pretrained_model: None
 

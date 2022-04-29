@@ -42,7 +42,7 @@ def eval_kmeans(p, val_dataset, n_clusters=21, compute_metrics=False, verbose=Tr
             print('Evaluating: {} of {} objects'.format(i, len(val_dataset)))
 
         # Load embedding
-        filename = os.path.join(p['embeddings_dir'], str(sample['name']) + '.npy')
+        filename = os.path.join(p['embeddings_dir'], str(sample['name']).split('.')[0] + '.npy')
         embedding = np.load(filename)
 
         # Check where ground-truth is valid. Append valid pixels to the array.
@@ -171,7 +171,7 @@ def save_embeddings_to_disk(p, val_loader, model, device, n_clusters=21, seed=12
         ptr += bs
 
         for name in batch['name']:
-            names.append(str(name))
+            names.append(str(name).split('.')[0])
 
         if ptr % 300 == 0:
             print('Computing prototype {}'.format(ptr))

@@ -11,7 +11,7 @@ from models.backbones.unet import UNet
 import libs.utils as utils
 from libs.train_utils import train
 from libs.common_config import get_optimizer, get_augmentation_transforms, adjust_learning_rate, get_dataset,\
-    get_image_transforms
+    get_image_transforms, get_segmentation_model
 
 parser = argparse.ArgumentParser()
 
@@ -43,7 +43,8 @@ def main(p):
     dataloader = DataLoader(dataset, batch_size=p['train_kwargs']['batch_size'], shuffle=True, drop_last=True,
                             num_workers=num_workers, pin_memory=True)
 
-    backbone = UNet(p, n_channels=3, n_classes=1)
+    # backbone = UNet(p, n_channels=3, n_classes=1)
+    backbone = get_segmentation_model(p)
     gcn = GCN(num_features=p['gcn_kwargs']['ndim'], hidden_channels=p['gcn_kwargs']['hidden_channels'],
               output_dim=p['gcn_kwargs']['output_dim'])
 

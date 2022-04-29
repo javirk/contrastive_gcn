@@ -4,6 +4,8 @@ import numpy as np
 import os
 import torchvision.transforms as T
 from libs.data.transforms import NodeDropping, EdgePerturbation, ToTensor
+from models.backbones.unet import UNet
+from models.modules.deeplab import ContrastiveDeeplab
 
 
 def get_optimizer(p, parameters):
@@ -56,7 +58,7 @@ def get_image_transforms(p):
     import albumentations as A
     return A.Compose([
         A.Resize(p['resolution'], p['resolution']), A.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
-        ToTensor()
+        ToTensor(transpose_mask=True)
     ])
     # return T.Compose([T.ToTensor(), T.Resize((224, 224)), T.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))])
 
@@ -71,3 +73,41 @@ def get_dataset(p, root, image_set, transform=None, aug_transformations=None):
         from libs.data.pascal_voc import Pascal
         return Pascal(root=os.path.join(root, 'VOCSegmentation'), image_set=image_set, transform=transform,
                       aug_transform=aug_transformations)
+
+
+def get_segmentation_model(p):
+    # Get backbone
+    if p['backbone'] == 'resnet18':
+        import torchvision.models.resnet as resnet
+        backbone = resnet.__dict__['resnet18'](pretrained=False)
+        backbone_channels = 512
+
+    elif p['backbone'] == 'resnet50':
+        import torchvision.models.resnet as resnet
+        backbone = resnet.__dict__['resnet50'](pretrained=False)
+        backbone_channels = 2048
+
+    elif p['backbone'] == 'unet':
+        backbone = UNet(p, n_channels=3, n_classes=1)
+
+    else:
+        raise ValueError('Invalid backbone {}'.format(p['backbone']))
+
+    if p['backbone_kwargs']['dilated']:
+        from models.modules.resnet_dilated import ResnetDilated
+        backbone = ResnetDilated(backbone)
+
+    # Get head
+    if p['head']['model'] == 'deeplab' and p['backbone'] != 'unet':
+        from models.modules.deeplab import DeepLabHead
+        nc = p['gcn_kwargs']['ndim']  # Because ndim in gcn_kwargs is the input dim
+        head = DeepLabHead(backbone_channels, nc)
+
+    else:
+        raise ValueError('Invalid head {}'.format(p['head']))
+
+    # Compose model from backbone and head
+    if p['backbone'] != 'unet':
+        return ContrastiveDeeplab(p, backbone, head, True, True)
+    else:
+        return backbone
