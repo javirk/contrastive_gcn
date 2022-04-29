@@ -5,10 +5,9 @@ import argparse
 import libs.utils as utils
 from libs.kmeans_utils import save_embeddings_to_disk, eval_kmeans
 from libs.data.mnist import MNISTSuperpixel
-from libs.common_config import get_image_transforms, get_dataset
+from libs.common_config import get_image_transforms, get_dataset, get_segmentation_model
 from models.gcn import GCN
 from models.builder import SegGCN
-from models.backbones.unet import UNet
 
 parser = argparse.ArgumentParser()
 
@@ -36,7 +35,7 @@ def main(p):
     dataset = get_dataset(p, root='data/', image_set='val', transform=image_tf)
     dataloader = DataLoader(dataset, batch_size=p['val_kwargs']['batch_size'], shuffle=False, drop_last=False,
                             num_workers=num_workers, pin_memory=True)
-    backbone = UNet(p, n_channels=3, n_classes=1)
+    backbone = get_segmentation_model(p)
     gcn = GCN(num_features=p['gcn_kwargs']['ndim'], hidden_channels=p['gcn_kwargs']['hidden_channels'],
               output_dim=p['gcn_kwargs']['output_dim'])
 
