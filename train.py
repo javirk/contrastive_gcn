@@ -1,6 +1,9 @@
 import torch
 import torch.nn as nn
-from torch_geometric.loader import DataLoader
+import torch.distributed as dist
+import torch.multiprocessing as mp
+from torch.nn.parallel import DistributedDataParallel
+from torch_geometric.loader import DataLoader, DataListLoader
 import wandb
 import argparse
 from datetime import datetime
@@ -27,7 +30,10 @@ parser.add_argument('-u', '--ubelix',
 FLAGS, unparsed = parser.parse_known_args()
 
 
-def main(p):
+def main(rank, world_size, p):
+    if world_size > 0:
+        dist.init_process_group('nccl', rank=rank, world_size=world_size)
+
     current_time = datetime.now().strftime("%Y%m%d-%H%M%S")
     p['checkpoint'] = f'./ckpt/{current_time}.pth'
     utils.copy_file(FLAGS.config, f'runs/{current_time}.yml')  # This should be improved in the future maybe
@@ -48,9 +54,11 @@ def main(p):
     gcn = GCN(num_features=p['gcn_kwargs']['ndim'], hidden_channels=p['gcn_kwargs']['hidden_channels'],
               output_dim=p['gcn_kwargs']['output_dim'])
 
-    model = SegGCN(p, backbone=backbone, graph_network=gcn)
-    model.to(device)
-    model = nn.DataParallel(model)
+    model = SegGCN(p, backbone=backbone, graph_network=gcn).to(rank)
+    if world_size > 0:
+        model = DistributedDataParallel(model, device_ids=[rank])
+    else:
+        model = nn.DataParallel(model)
     model.train()
 
     optimizer = get_optimizer(p, model.parameters())
@@ -59,12 +67,13 @@ def main(p):
         lr = adjust_learning_rate(p, optimizer, epoch)
         print('Adjusted learning rate to {:.5f}'.format(lr))
 
-        train(p, dataloader, model, optimizer, epoch, device)
+        train(p, dataloader, model, optimizer, epoch, rank)
 
         torch.save({'optimizer': optimizer.state_dict(), 'model': model.state_dict(),
                     'epoch': epoch + 1}, p['checkpoint'])
 
     wandb.finish()
+    dist.destroy_process_group()
 
 
 if __name__ == '__main__':
@@ -77,4 +86,11 @@ if __name__ == '__main__':
         config['train_kwargs']['batch_size'] = 4
         num_workers = 1
 
-    main(config)
+    # main(config)
+
+    world_size = torch.cuda.device_count()
+    print('Let\'s use', world_size, 'GPUs!')
+    if world_size > 0:
+        mp.spawn(main, args=(world_size, config), nprocs=world_size, join=True)
+    else:
+        main('cpu', 0, config)
