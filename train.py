@@ -1,16 +1,15 @@
+import os
 import torch
 import torch.nn as nn
 import torch.distributed as dist
 import torch.multiprocessing as mp
 from torch.nn.parallel import DistributedDataParallel
-from torch_geometric.loader import DataLoader, DataListLoader
+from torch_geometric.loader import DataLoader
 import wandb
 import argparse
 from datetime import datetime
-from libs.data.mnist import MNISTSuperpixel
 from models.gcn import GCN
 from models.builder import SegGCN
-from models.backbones.unet import UNet
 import libs.utils as utils
 from libs.train_utils import train
 from libs.common_config import get_optimizer, get_augmentation_transforms, adjust_learning_rate, get_dataset,\
@@ -32,6 +31,8 @@ FLAGS, unparsed = parser.parse_known_args()
 
 def main(rank, world_size, p):
     if world_size > 0:
+        os.environ['MASTER_ADDR'] = 'localhost'
+        os.environ['MASTER_PORT'] = '12355'
         dist.init_process_group('nccl', rank=rank, world_size=world_size)
 
     current_time = datetime.now().strftime("%Y%m%d-%H%M%S")
