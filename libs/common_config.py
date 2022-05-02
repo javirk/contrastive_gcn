@@ -102,6 +102,8 @@ def get_segmentation_model(p):
         from models.modules.deeplab import DeepLabHead
         nc = p['gcn_kwargs']['ndim']  # Because ndim in gcn_kwargs is the input dim
         head = DeepLabHead(backbone_channels, nc)
+        if p['model_kwargs']['norm_layer'].lower() == 'groupnorm':
+            head = batch_norm_to_group_norm(head)
 
     else:
         raise ValueError('Invalid head {}'.format(p['head']))
@@ -109,8 +111,6 @@ def get_segmentation_model(p):
     # Compose model from backbone and head
     if p['backbone'] != 'unet':
         model = ContrastiveDeeplab(p, backbone, head, True, True)
-        if p['model_kwargs']['norm_layer'].lower() == 'groupnorm':
-            model = batch_norm_to_group_norm(model)
         return model
     else:
         return backbone
