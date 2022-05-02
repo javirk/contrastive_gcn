@@ -71,7 +71,7 @@ def main(p):
         lr = adjust_learning_rate(p, optimizer, epoch)
         print('Adjusted learning rate to {:.5f}'.format(lr))
 
-        train(p, dataloader, model, optimizer, epoch, rank)
+        train(p, dataloader, model, optimizer, epoch, device)
 
         torch.save({'optimizer': optimizer.state_dict(), 'model': model.state_dict(),
                     'epoch': epoch + 1}, p['checkpoint'])

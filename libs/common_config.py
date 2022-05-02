@@ -1,8 +1,10 @@
 import torch
+import torch.nn as nn
 import math
 import numpy as np
 import os
 import torchvision.transforms as T
+import torchvision.models.resnet as resnet
 from libs.data.transforms import NodeDropping, EdgePerturbation, ToTensor
 from models.backbones.unet import UNet
 from models.modules.deeplab import ContrastiveDeeplab
@@ -78,13 +80,11 @@ def get_dataset(p, root, image_set, transform=None, aug_transformations=None):
 def get_segmentation_model(p):
     # Get backbone
     if p['backbone'] == 'resnet18':
-        import torchvision.models.resnet as resnet
-        backbone = resnet.__dict__['resnet18'](pretrained=False, norm_layer=eval(p['model_kwargs']['norm_layer']))
+        backbone = resnet.__dict__['resnet18'](pretrained=False)
         backbone_channels = 512
 
     elif p['backbone'] == 'resnet50':
-        import torchvision.models.resnet as resnet
-        backbone = resnet.__dict__['resnet50'](pretrained=False, norm_layer=eval(p['model_kwargs']['norm_layer']))
+        backbone = resnet.__dict__['resnet50'](pretrained=False)
         backbone_channels = 2048
 
     elif p['backbone'] == 'unet':
@@ -101,13 +101,50 @@ def get_segmentation_model(p):
     if p['head']['model'] == 'deeplab' and p['backbone'] != 'unet':
         from models.modules.deeplab import DeepLabHead
         nc = p['gcn_kwargs']['ndim']  # Because ndim in gcn_kwargs is the input dim
-        head = DeepLabHead(backbone_channels, nc, norm_layer=eval(p['model_kwargs']['norm_layer']))
+        head = DeepLabHead(backbone_channels, nc)
 
     else:
         raise ValueError('Invalid head {}'.format(p['head']))
 
     # Compose model from backbone and head
     if p['backbone'] != 'unet':
-        return ContrastiveDeeplab(p, backbone, head, True, True)
+        model = ContrastiveDeeplab(p, backbone, head, True, True)
+        if p['model_kwargs']['norm_layer'].lower() == 'groupnorm':
+            model = batch_norm_to_group_norm(model)
+        return model
     else:
         return backbone
+
+
+def batch_norm_to_group_norm(layer):
+    """Iterates over a whole model (or layer of a model) and replaces every batch norm 2D with a group norm
+
+    Args:
+        layer: model or one layer of a model like resnet34.layer1 or Sequential(), ...
+    """
+    GROUP_NORM_LOOKUP = {
+        16: 2,  # -> channels per group: 8
+        32: 4,  # -> channels per group: 8
+        64: 8,  # -> channels per group: 8
+        128: 8,  # -> channels per group: 16
+        256: 16,  # -> channels per group: 16
+        512: 32,  # -> channels per group: 16
+        1024: 32,  # -> channels per group: 32
+        2048: 32,  # -> channels per group: 64
+    }
+    for name, module in layer.named_modules():
+        if name:
+            try:
+                # name might be something like: model.layer1.sequential.0.conv1 --> this wont work. Except this case
+                sub_layer = getattr(layer, name)
+                if isinstance(sub_layer, torch.nn.BatchNorm2d):
+                    num_channels = sub_layer.num_features
+                    # first level of current layer or model contains a batch norm --> replacing.
+                    layer._modules[name] = torch.nn.GroupNorm(GROUP_NORM_LOOKUP[num_channels], num_channels)
+            except AttributeError:
+                # go deeper: set name to layer1, getattr will return layer1 --> call this func again
+                name = name.split('.')[0]
+                sub_layer = getattr(layer, name)
+                sub_layer = batch_norm_to_group_norm(sub_layer)
+                layer.__setattr__(name=name, value=sub_layer)
+    return layer

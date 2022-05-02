@@ -21,7 +21,6 @@ def train(p, train_loader, model, optimizer, epoch, device):
     for i, batch in enumerate(train_loader):
         input_batch = batch['img'].to(device)
         data_batch = batch['data'].to(device)
-        print(data_batch)
         data_aug_batch = batch['data_aug'].to(device)
         mask = batch['sal'].to(device)
 

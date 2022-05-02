@@ -8,7 +8,7 @@ head:
   type: linear
   model: deeplab
 model_kwargs:
-  norm_layer: torch.nn.LayerNorm
+  norm_layer: groupnorm
 
 pretrained_model: None
 
