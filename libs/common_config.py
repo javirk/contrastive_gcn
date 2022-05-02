@@ -79,12 +79,12 @@ def get_segmentation_model(p):
     # Get backbone
     if p['backbone'] == 'resnet18':
         import torchvision.models.resnet as resnet
-        backbone = resnet.__dict__['resnet18'](pretrained=False)
+        backbone = resnet.__dict__['resnet18'](pretrained=False, norm_layer=eval(p['model_kwargs']['norm_layer']))
         backbone_channels = 512
 
     elif p['backbone'] == 'resnet50':
         import torchvision.models.resnet as resnet
-        backbone = resnet.__dict__['resnet50'](pretrained=False)
+        backbone = resnet.__dict__['resnet50'](pretrained=False, norm_layer=eval(p['model_kwargs']['norm_layer']))
         backbone_channels = 2048
 
     elif p['backbone'] == 'unet':
@@ -101,7 +101,7 @@ def get_segmentation_model(p):
     if p['head']['model'] == 'deeplab' and p['backbone'] != 'unet':
         from models.modules.deeplab import DeepLabHead
         nc = p['gcn_kwargs']['ndim']  # Because ndim in gcn_kwargs is the input dim
-        head = DeepLabHead(backbone_channels, nc)
+        head = DeepLabHead(backbone_channels, nc, norm_layer=eval(p['model_kwargs']['norm_layer']))
 
     else:
         raise ValueError('Invalid head {}'.format(p['head']))

@@ -7,32 +7,34 @@ import torch.nn.functional as F
 
 
 class DeepLabHead(nn.Sequential):
-    def __init__(self, in_channels, num_classes):
+    def __init__(self, in_channels, num_classes, norm_layer=None):
+        if norm_layer is None:
+            norm_layer = nn.BatchNorm2d
         super(DeepLabHead, self).__init__(
-            ASPP(in_channels, [12, 24, 36]),
+            ASPP(in_channels, [12, 24, 36], norm_layer=norm_layer),
             nn.Conv2d(256, 256, 3, padding=1, bias=False),
-            nn.BatchNorm2d(256),
+            norm_layer(256),
             nn.ReLU(),
             nn.Conv2d(256, num_classes, 1)
         )
 
 
 class ASPPConv(nn.Sequential):
-    def __init__(self, in_channels, out_channels, dilation):
+    def __init__(self, in_channels, out_channels, dilation, norm_layer=None):
         modules = [
             nn.Conv2d(in_channels, out_channels, 3, padding=dilation, dilation=dilation, bias=False),
-            nn.BatchNorm2d(out_channels),
+            norm_layer(out_channels),
             nn.ReLU()
         ]
         super(ASPPConv, self).__init__(*modules)
 
 
 class ASPPPooling(nn.Sequential):
-    def __init__(self, in_channels, out_channels):
+    def __init__(self, in_channels, out_channels, norm_layer=None):
         super(ASPPPooling, self).__init__(
             nn.AdaptiveAvgPool2d(1),
             nn.Conv2d(in_channels, out_channels, 1, bias=False),
-            nn.BatchNorm2d(out_channels),
+            norm_layer(out_channels),
             nn.ReLU())
 
     def forward(self, x):
@@ -43,25 +45,27 @@ class ASPPPooling(nn.Sequential):
 
 
 class ASPP(nn.Module):
-    def __init__(self, in_channels, atrous_rates, out_channels=256):
+    def __init__(self, in_channels, atrous_rates, out_channels=256, norm_layer=None):
         super(ASPP, self).__init__()
         modules = []
+        if norm_layer is None:
+            norm_layer = nn.BatchNorm2d
         modules.append(nn.Sequential(
             nn.Conv2d(in_channels, out_channels, 1, bias=False),
-            nn.BatchNorm2d(out_channels),
+            norm_layer(out_channels),
             nn.ReLU()))
 
         rates = tuple(atrous_rates)
         for rate in rates:
-            modules.append(ASPPConv(in_channels, out_channels, rate))
+            modules.append(ASPPConv(in_channels, out_channels, rate, norm_layer=norm_layer))
 
-        modules.append(ASPPPooling(in_channels, out_channels))
+        modules.append(ASPPPooling(in_channels, out_channels, norm_layer=norm_layer))
 
         self.convs = nn.ModuleList(modules)
 
         self.project = nn.Sequential(
             nn.Conv2d(5 * out_channels, out_channels, 1, bias=False),
-            nn.BatchNorm2d(out_channels),
+            norm_layer(out_channels),
             nn.ReLU(),
             nn.Dropout(0.5))
 

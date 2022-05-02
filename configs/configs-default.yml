@@ -1,13 +1,14 @@
 dataset: PASCAL
 num_classes: 21
 resolution: 224
-backbone: resnet18
+backbone: resnet50
 backbone_kwargs:  # It only has effect on resnet
   dilated: True
 head:
   type: linear
   model: deeplab
-
+model_kwargs:
+  norm_layer: torch.nn.LayerNorm
 
 pretrained_model: None
 
