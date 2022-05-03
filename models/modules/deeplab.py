@@ -115,18 +115,55 @@ class ContrastiveDeeplab(nn.Module):
         else:
             return {'embeddings': x}
 
+class AffinityDeeplab(nn.Module):
+    def __init__(self, p, backbone, decoder, upsample):
+        super(AffinityDeeplab, self).__init__()
+        self.backbone = backbone
+        self.upsample = upsample
+
+        if p['head']['type'] == 'linear':
+            # Head is linear.
+            # We can just use regular decoder since final conv is 1 x 1.
+            self.decoder = decoder
+        else:
+            raise NotImplementedError('Head {} is currently not supported'.format(head))
+
+        # Add classification head for saliency prediction
+        self.classification_head = nn.Conv2d(self.decoder[-1].out_channels, 1, 1, bias=False)
+
+    def forward(self, x):
+        # Standard model
+        input_shape = x.shape[-2:]
+        x_dict = self.backbone(x)
+        features, aff, aff_crf, x = x_dict['cat_features'], x_dict['aff'], x_dict['aff_crf'], x_dict['conv6']
+        embedding = self.decoder(x)
+
+        # Head
+        sal = self.classification_head(embedding)
+
+        # Upsample to input resolution
+        if self.upsample:
+            sal = F.interpolate(sal, size=input_shape, mode='bilinear', align_corners=False)
+
+        # Return outputs
+        return {'features': features, 'aff': aff, 'aff_crf': aff_crf, 'seg': sal}
+
+
 if __name__ == '__main__':
     import torchvision.models.resnet as resnet
     from models.modules.resnet_dilated import ResnetDilated
+    from models.modules.resnet38_aff import AffinityNet
 
     config = {'head': {'type': 'linear'}}
 
-    backbone = resnet.__dict__['resnet18'](pretrained=False)
-    backbone_channels = 512
-    backbone = ResnetDilated(backbone)
+    # backbone = resnet.__dict__['resnet18'](pretrained=False)
+    # backbone_channels = 512
+    # backbone = ResnetDilated(backbone)
+    backbone = AffinityNet()
+    backbone_channels = 4096
 
     nc = 64
     head = DeepLabHead(backbone_channels, nc)
-    c = ContrastiveDeeplab(config, backbone, head, True, True)
+    c = AffinityDeeplab(config, backbone, head, True)
     im = torch.rand((2, 3, 512, 512))
-    x, sal = c(im)
+    output = c(im)

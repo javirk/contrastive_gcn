@@ -5,7 +5,7 @@ import os
 import torchvision.transforms as T
 from libs.data.transforms import NodeDropping, EdgePerturbation, ToTensor
 from models.backbones.unet import UNet
-from models.modules.deeplab import ContrastiveDeeplab
+from models.modules.deeplab import AffinityDeeplab, ContrastiveDeeplab
 
 
 def get_optimizer(p, parameters):
@@ -87,6 +87,11 @@ def get_segmentation_model(p):
         backbone = resnet.__dict__['resnet50'](pretrained=False)
         backbone_channels = 2048
 
+    elif p['backbone'] == 'resnet38_aff':
+        from models.modules.resnet38_aff import AffinityNet
+        backbone = AffinityNet()
+        backbone_channels = 4096
+
     elif p['backbone'] == 'unet':
         backbone = UNet(p, n_channels=3, n_classes=1)
 
@@ -94,8 +99,11 @@ def get_segmentation_model(p):
         raise ValueError('Invalid backbone {}'.format(p['backbone']))
 
     if p['backbone_kwargs']['dilated']:
-        from models.modules.resnet_dilated import ResnetDilated
-        backbone = ResnetDilated(backbone)
+        if 'aff' in p['backbone']:
+            print('Dilation not applied because we are using Affinity Network')
+        else:
+            from models.modules.resnet_dilated import ResnetDilated
+            backbone = ResnetDilated(backbone)
 
     # Get head
     if p['head']['model'] == 'deeplab' and p['backbone'] != 'unet':
@@ -107,7 +115,11 @@ def get_segmentation_model(p):
         raise ValueError('Invalid head {}'.format(p['head']))
 
     # Compose model from backbone and head
-    if p['backbone'] != 'unet':
-        return ContrastiveDeeplab(p, backbone, head, True, True)
-    else:
+    if p['backbone'] == 'unet':
         return backbone
+
+    elif 'aff' in p['backbone']:
+        return AffinityDeeplab(p, backbone, head, upsample=True)
+
+    else:
+        return ContrastiveDeeplab(p, backbone, head, upsample=True, use_classification_head=True)

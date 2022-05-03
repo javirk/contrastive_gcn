@@ -8,7 +8,8 @@ from datetime import datetime
 from libs.losses import BalancedCrossEntropyLoss
 from models.backbones.unet import UNet
 import libs.utils as utils
-from libs.common_config import get_optimizer, adjust_learning_rate, get_dataset, get_image_transforms
+from libs.common_config import get_optimizer, adjust_learning_rate, get_dataset, get_image_transforms,\
+    get_segmentation_model
 
 parser = argparse.ArgumentParser()
 
@@ -41,7 +42,7 @@ def main(p):
     dataloader = DataLoader(dataset, batch_size=p['train_kwargs']['batch_size'], shuffle=True, drop_last=True,
                             num_workers=num_workers, pin_memory=True)
 
-    backbone = UNet(p, n_channels=3)
+    backbone = get_segmentation_model(p)
 
     backbone.to(device)
     backbone = nn.DataParallel(backbone)
@@ -107,7 +108,7 @@ if __name__ == '__main__':
 
     if FLAGS.ubelix == 0:
         config['train_kwargs']['batch_size'] = 2
-        num_workers = 1
+        num_workers = 0
 
     config['logs']['writing_freq'] = 15
 

@@ -1,9 +1,9 @@
 dataset: PASCAL
 num_classes: 21
 resolution: 224
-backbone: resnet18
+backbone: resnet38_aff
 backbone_kwargs:  # It only has effect on resnet
-  dilated: True
+  dilated: False
 head:
   type: linear
   model: deeplab
