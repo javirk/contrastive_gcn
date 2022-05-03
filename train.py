@@ -77,7 +77,7 @@ def main(p):
                     'epoch': epoch + 1}, p['checkpoint'])
 
     wandb.finish()
-    dist.destroy_process_group()
+    # dist.destroy_process_group()
 
 
 if __name__ == '__main__':

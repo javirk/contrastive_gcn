@@ -145,7 +145,7 @@ def save_embeddings_to_disk(p, val_loader, model, device, n_clusters=21, seed=12
         batch_info = data_batch.batch
 
         features, mask, sp_map = model(input_batch, data_batch)
-
+        mask = batch['sal'].to(device)
         bs = input_batch.shape[0]
 
         # cam = torch.softmax(cam, dim=1).argmax(dim=1)  # Maybe this will be saliency later. Make it int {0,1}
