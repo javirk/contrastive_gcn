@@ -57,22 +57,32 @@ def get_augmentation_transforms(p):
 def get_image_transforms(p):
     import albumentations as A
     return A.Compose([
-        A.Resize(p['resolution'], p['resolution']), A.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
-        ToTensor(transpose_mask=True)
+        A.Resize(p['resolution'], p['resolution']),
+        A.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))
     ])
     # return T.Compose([T.ToTensor(), T.Resize((224, 224)), T.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))])
 
+def get_sal_transforms(p):
+    import albumentations as A
+    return A.Compose([A.Resize(p['resolution'] // 8, p['resolution'] // 8)])
 
-def get_dataset(p, root, image_set, transform=None, aug_transformations=None):
+def get_joint_transforms(p):
+    import albumentations as A
+    return A.Compose([
+        ToTensor(transpose_mask=True)
+    ])
+
+
+# def get_dataset(p, root, image_set, transform=None, aug_transformations=None, sal_transformations=None):
+def get_dataset(p, root, image_set, **kwargs):
     if p['dataset'] == 'MNIST':
         from libs.data.mnist import MNISTSuperpixel
         train = True if 'train' in image_set else False
-        return MNISTSuperpixel(root, train=train, aug_transform=aug_transformations, download=True)
+        return MNISTSuperpixel(root, train=train, download=True, **kwargs)
 
     elif p['dataset'].upper() == 'PASCAL':
         from libs.data.pascal_voc import Pascal
-        return Pascal(root=os.path.join(root, 'VOCSegmentation'), image_set=image_set, transform=transform,
-                      aug_transform=aug_transformations)
+        return Pascal(root=os.path.join(root, 'VOCSegmentation'), image_set=image_set, **kwargs)
 
 
 def get_segmentation_model(p):

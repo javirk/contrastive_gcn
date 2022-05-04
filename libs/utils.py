@@ -5,6 +5,7 @@ import yaml
 import wandb
 import shutil
 from typing import Optional
+import torch.nn.functional as F
 
 _true_set = {'yes', 'true', 't', 'y', '1'}
 _false_set = {'no', 'false', 'f', 'n', '0'}
@@ -147,3 +148,9 @@ def copy_file(src, dst):
         shutil.copy(src, dst)
     except shutil.SameFileError:
         pass
+
+def unfold(img, radius):
+    assert img.dim() == 4, 'Unfolding requires NCHW batch'
+    N, C, H, W = img.shape
+    diameter = 2 * radius + 1
+    return F.unfold(img, diameter, 1, radius).view(N, C, diameter, diameter, H, W)

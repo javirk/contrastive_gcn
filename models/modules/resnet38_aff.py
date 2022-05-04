@@ -1,16 +1,9 @@
 import torch
 import torch.nn as nn
-import torch.sparse as sparse
 import torch.nn.functional as F
 import models.modules.resnet38d
 import numpy as np
-
-
-def _unfold(img, radius):
-    assert img.dim() == 4, 'Unfolding requires NCHW batch'
-    N, C, H, W = img.shape
-    diameter = 2 * radius + 1
-    return F.unfold(img, diameter, 1, radius).view(N, C, diameter, diameter, H, W)
+from libs.utils import unfold
 
 
 class AffinityNet(models.modules.resnet38d.Net):
@@ -34,7 +27,7 @@ class AffinityNet(models.modules.resnet38d.Net):
 
         self.predefined_featuresize = int(448 // 8)
 
-    def forward(self, x, radius=4, to_dense=False):
+    def forward(self, x, radius=4):
         d = super().forward_as_dict(x)
 
         f8_3 = F.elu(self.f8_3(d['conv4']))
@@ -45,7 +38,7 @@ class AffinityNet(models.modules.resnet38d.Net):
 
         N, C, H, W = x.shape
 
-        aff_crf = _unfold(x, radius=radius)
+        aff_crf = unfold(x, radius=radius)
         aff_crf = torch.abs(aff_crf - aff_crf[:, :, radius, radius, :, :].view(N, C, 1, 1, H, W))
         aff_crf = torch.mean(aff_crf, dim=1)
 

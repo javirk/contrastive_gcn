@@ -14,30 +14,27 @@ class Pascal(Dataset):
                           'horse', 'motorbike', 'person', 'pottedplant', 'sheep',
                           'sofa', 'train', 'tvmonitor']
 
-    def __init__(self, root: str, image_set: str = "train", sal_type='supervised', transform=None, aug_transform=None):
+    def __init__(self, root: str, image_set: str = "train", sal_type='supervised', transform=None, sal_transform=None,
+                 joint_transform=None):
         self.root = root
         assert image_set in ('train', 'val', 'trainaug')
         self.split = image_set
         assert sal_type.lower() in ('supervised', 'unsupervised')
+        assert sal_transform is not None
 
         _semseg_name = 'SegmentationClassAug' if 'aug' in image_set else 'SegmentationClass'
         _semseg_dir = os.path.join(self.root, _semseg_name)
         _image_dir = os.path.join(self.root, 'images')
         _sal_dir = os.path.join(self.root, f'saliency_{sal_type}_model')
-        _sp_dir = os.path.join(self.root, 'superpixel')
 
         self.transform = transform
-        # self.sal_transform = self._get_saliency_transformations()
-        self.aug_transform = aug_transform
-        self.transforms_conversion = T.Compose([transforms.ToSLIC(n_segments=1000, compactness=10, add_seg=True,
-                                                                  enforce_connectivity=True),
-                                                transforms.RadiusGraph(r=100, loop=True)])
+        self.sal_transform = sal_transform
+        self.joint_transform = joint_transform
 
         split_file = os.path.join(self.root, 'sets', self.split + '.txt')
         self.images = []
         self.semsegs = []
         self.saliencies = []
-        self.superpixels = []
 
         with open(split_file, "r") as f:
             lines = f.read().splitlines()
@@ -47,7 +44,6 @@ class Pascal(Dataset):
             _image = os.path.join(_image_dir, line + ".jpg")
             _sal = os.path.join(_sal_dir, line + '.png')
             _semseg = os.path.join(_semseg_dir, line + '.png')
-            _superpixel = os.path.join(_sp_dir, line + '.pt')
 
             if os.path.isfile(_image) and os.path.isfile(_sal):
                 self.images.append(_image)
@@ -56,9 +52,6 @@ class Pascal(Dataset):
                 # Semantic Segmentation
                 assert os.path.isfile(_semseg)
                 self.semsegs.append(_semseg)
-
-                # Superpixels information
-                self.superpixels.append(_superpixel)
 
         print('Number of dataset images: {:d}'.format(len(self.images)))
 
@@ -87,41 +80,20 @@ class Pascal(Dataset):
             saliency = transformed['masks'][0]
             semseg = transformed['masks'][1]
 
-        if os.path.exists(self.superpixels[index]):
-            data = self._read_superpixels(index)
-        else:
-            data = self.transforms_conversion(img)
-            data.sp_seg = data.seg
-            del data.seg
+        saliency_downsampled = self.sal_transform(image=saliency)['image']  # This is terrible. It should be mask=saliency
 
-        data_aug = data.clone()
-        if self.aug_transform:
-            data_aug = self.aug_transform(data_aug)
+        if self.joint_transform is not None:
+            transformed = self.joint_transform(image=img, masks=[saliency, semseg, saliency_downsampled])
+            img = transformed['image']
+            saliency = transformed['masks'][0]
+            semseg = transformed['masks'][1]
+            saliency_downsampled = transformed['masks'][2]
 
-        # if _semseg.shape != _img.shape[:2]:
-        #     _semseg = cv2.resize(_semseg, _img.shape[:2][::-1], interpolation=cv2.INTER_NEAREST)
-
-        return {'img': img, 'data': data, 'data_aug': data_aug, 'name': filename, 'semseg': semseg,
-                'sal': saliency}
+        return {'img': img, 'name': filename, 'semseg': semseg, 'sal': saliency, 'sal_down': saliency_downsampled}
 
     def _read_saliency(self, index):
         saliency = np.array(Image.open(self.saliencies[index])) / 255.
-        saliency = saliency  # To add a channel before
         return saliency[..., None]
-
-    def _read_superpixels(self, index):
-        data = torch.load(self.superpixels[index])
-        return data
-
-    @staticmethod
-    def save_superpixel_data(dataset, path):
-        from tqdm import tqdm
-        for d in tqdm(dataset):
-            name = d['name'].split('.')[0]
-            data = d['data']
-
-            torch.save(data, os.path.join(path, 'superpixel', name + '.pt'))
-        print(f'Dataset saved to {path}')
 
 
 if __name__ == '__main__':

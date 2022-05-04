@@ -1,5 +1,6 @@
 import torch
 from torch.nn.functional import cross_entropy
+import torch.nn.functional as F
 import libs.utils as utils
 
 
@@ -60,6 +61,91 @@ def train(p, train_loader, model, optimizer, epoch, device):
             progress.to_wandb(step_logging, prefix='train')
             progress.reset()
             # progress.display(i)
+
+
+def train_aff(p, train_loader, model, crit_aff, crit_bce, optimizer, epoch, device):
+    radius = 4
+    losses_meter = utils.AverageMeter('Loss', ':.4e')
+    ce_loss_meter = utils.AverageMeter('Contrastive', ':.4e')
+    aff_loss_meter = utils.AverageMeter('Affinity regularized', ':.4e')
+    cam_losses_meter = utils.AverageMeter('Cam_loss', ':.4e')
+    progress_vars = [losses_meter, ce_loss_meter, aff_loss_meter, cam_losses_meter]
+
+    progress = utils.ProgressMeter(len(train_loader), progress_vars, prefix="Epoch: [{}]".format(epoch))
+    model.train()
+
+    for i, batch in enumerate(train_loader):
+        input_batch = batch['img'].to(device)
+        saliency = batch['sal'].to(device)  # Just the saliency (Bx1xHxW)
+        label = batch['sal_down'].to(device)
+
+        optimizer.zero_grad()
+
+        output_dict = model(input_batch, radius=radius)
+        aff = output_dict['aff'].unsqueeze(dim=1)
+        label = utils.unfold(label, radius=radius)
+        N, _, H, W = output_dict['features'].shape
+
+        sal_loss = crit_bce(output_dict['seg'], saliency)
+
+        crf_img = F.interpolate(input_batch, [H, W], mode='bilinear', align_corners=False)
+        crf_input = {'rgb': crf_img}
+
+        label_center = label[:, :, radius, radius, :, :].view(N, 1, 1, 1, H, W)
+        label_center = label_center.expand_as(label)
+
+        aff_label = torch.eq(label, label_center)
+        aff_label_ignore = torch.eq(label, 255)
+
+        aff_label[aff_label_ignore == 1] = 255
+        aff_label[label_center == 255] = 255
+
+        bg_pos_label_need = torch.zeros_like(aff_label)
+        bg_pos_label_need[aff_label == 1] = 1
+        bg_pos_label_need[label_center != 0] = 0
+        bg_pos_label_need[aff_label_ignore == 1] = 0
+
+        fg_pos_label_need = torch.zeros_like(aff_label)
+        fg_pos_label_need[aff_label == 1] = 1
+        fg_pos_label_need[label_center == 0] = 0
+        fg_pos_label_need[aff_label_ignore == 1] = 0
+        fg_pos_label_need[label_center == 255] = 0
+
+        neg_label_need = torch.zeros_like(aff_label)
+        neg_label_need[aff_label == 0] = 1
+        neg_label_need[aff_label_ignore == 1] = 0
+        neg_label_need[label_center == 255] = 0
+
+        bg_count = torch.sum(bg_pos_label_need).float() + 1e-5
+        fg_count = torch.sum(fg_pos_label_need).float() + 1e-5
+        neg_count = torch.sum(neg_label_need).float() + 1e-5
+
+        bg_loss = torch.sum(- bg_pos_label_need.float() * torch.log(aff + 1e-5)) / bg_count
+        fg_loss = torch.sum(- fg_pos_label_need.float() * torch.log(aff + 1e-5)) / fg_count
+        neg_loss = torch.sum(- neg_label_need.float() * torch.log(1. + 1e-5 - aff)) / neg_count
+
+        # Criterion is Gated CRF
+        out_gatedcrf = crit_aff(output_dict['aff_crf'], [{'weight': 1, 'xy': 6, 'rgb': 0.1}], radius, crf_input, H, W)
+        crf_loss = 3 * out_gatedcrf['loss']
+        ce_loss = bg_loss / 4 + fg_loss / 4 + neg_loss / 2
+
+        loss = ce_loss + crf_loss + sal_loss
+
+        losses_meter.update(loss.item())
+        aff_loss_meter.update(crf_loss.item())
+        ce_loss_meter.update(ce_loss.item())
+        cam_losses_meter.update(sal_loss.item())
+
+        loss.backward()
+        optimizer.step()
+
+        # Display progress
+        if i % p['logs']['writing_freq'] == 0 and p['ubelix']:
+            step_logging = epoch * len(train_loader) + i
+            progress.to_wandb(step_logging, prefix='train')
+            progress.reset()
+            # progress.display(i)
+
 
 
 @torch.no_grad()

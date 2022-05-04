@@ -131,10 +131,10 @@ class AffinityDeeplab(nn.Module):
         # Add classification head for saliency prediction
         self.classification_head = nn.Conv2d(self.decoder[-1].out_channels, 1, 1, bias=False)
 
-    def forward(self, x):
+    def forward(self, x, radius=4):
         # Standard model
         input_shape = x.shape[-2:]
-        x_dict = self.backbone(x)
+        x_dict = self.backbone(x, radius)
         features, aff, aff_crf, x = x_dict['cat_features'], x_dict['aff'], x_dict['aff_crf'], x_dict['conv6']
         embedding = self.decoder(x)
 
