@@ -35,7 +35,8 @@ def main(p):
     utils.copy_file(FLAGS.config, f'runs/{current_time}.yml')  # This should be improved in the future maybe
 
     if p['ubelix'] == 1:
-        wandb.init(project='Contrastive-Graphs', config=p, name=current_time, notes=f"{p['dataset']} - {p['backbone']}")
+        wandb.init(project='Contrastive-Graphs', config=p, name=current_time + '_aff',
+                   notes=f"{p['dataset']} - {p['backbone']}")
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
     sal_tf = get_sal_transforms(p)
