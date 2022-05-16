@@ -7,14 +7,11 @@ import torch.nn as nn
 import numpy as np
 import os
 import cv2
-from torch_scatter import scatter_mean, scatter_sum
-from einops import rearrange
 from sklearn import metrics
 from sklearn.cluster import MiniBatchKMeans
 from sklearn.decomposition import PCA
 from scipy.optimize import linear_sum_assignment
 from joblib import Parallel, delayed
-import libs.utils as utils
 from libs.crf import dense_crf
 
 N_JOBS = 8
@@ -141,31 +138,16 @@ def save_embeddings_to_disk(p, val_loader, model, device, n_clusters=21, seed=12
     names = []
     for i, batch in enumerate(val_loader):
         input_batch = batch['img'].to(device)
-        data_batch = batch['data'].to(device)
-        batch_info = data_batch.batch
 
-        features, mask, sp_map = model(input_batch, data_batch)
-
-        bs = input_batch.shape[0]
-
-        # cam = torch.softmax(cam, dim=1).argmax(dim=1)  # Maybe this will be saliency later. Make it int {0,1}
-        mask = mask[:, 0]  # Some sort of saliency like this. And values are not int
-        mask_sp = rearrange(mask, 'b h w -> (b h w)')
-        mask_sp = scatter_mean(mask_sp, index=sp_map, dim=0)
-
-        # features: SP x dim
-        # cam: B x C x H x W --> B x H x W --> SP
-
-        prototypes = (mask_sp * (mask_sp > 0.5).float()).unsqueeze(1) * features  # SP x dim
-        prototypes = scatter_sum(prototypes, index=batch_info, dim=0)  # B x dim
-        prototypes = nn.functional.normalize(prototypes, dim=1)
+        features, mask = model(input_batch)
 
         # compute prototypes
-        # bs, dim, _, _ = features.shape
-        # output = output.reshape(bs, dim, -1)  # B x dim x H.W
-        # cam_proto = cam.reshape(bs, -1, 1).type(output.dtype)  # B x H.W x 1
-        # prototypes = torch.bmm(output, cam_proto * (cam_proto > 0.5).float()).squeeze()  # B x dim
-        # prototypes = nn.functional.normalize(prototypes, dim=1)
+        bs, dim, _, _ = output.shape
+        output = output.reshape(bs, dim, -1)  # B x dim x H.W
+        sal_proto = mask.reshape(bs, -1, 1).type(output.dtype)  # B x H.W x 1
+        prototypes = torch.bmm(output, sal_proto * (sal_proto > 0.5).float()).squeeze()  # B x dim
+        prototypes = nn.functional.normalize(prototypes, dim=1)
+
         all_prototypes[ptr: ptr + bs] = prototypes
         all_cams[ptr: ptr + bs, :, :] = (mask > 0.5).float()
         ptr += bs
@@ -203,7 +185,8 @@ def _hungarian_match(flat_preds, flat_targets, preds_k, targets_k, metric='acc')
 
     # perform hungarian matching
     print('Using iou as metric')
-    results = Parallel(n_jobs=N_JOBS, backend='multiprocessing')(delayed(get_iou)(flat_preds, flat_targets, c1, c2) for c2 in range(num_k) for c1 in range(num_k))
+    results = Parallel(n_jobs=N_JOBS, backend='multiprocessing')(
+        delayed(get_iou)(flat_preds, flat_targets, c1, c2) for c2 in range(num_k) for c1 in range(num_k))
     results = np.array(results)
     results = results.reshape((num_k, num_k)).T
     match = linear_sum_assignment(flat_targets.shape[0] - results)
@@ -214,8 +197,10 @@ def _hungarian_match(flat_preds, flat_targets, preds_k, targets_k, metric='acc')
 
     return res
 
+
 def _majority_vote(flat_preds, flat_targets, preds_k, targets_k):
-    iou_mat = Parallel(n_jobs=N_JOBS, backend='multiprocessing')(delayed(get_iou)(flat_preds, flat_targets, c1, c2) for c2 in range(targets_k) for c1 in range(preds_k))
+    iou_mat = Parallel(n_jobs=N_JOBS, backend='multiprocessing')(
+        delayed(get_iou)(flat_preds, flat_targets, c1, c2) for c2 in range(targets_k) for c1 in range(preds_k))
     iou_mat = np.array(iou_mat)
     results = iou_mat.reshape((targets_k, preds_k)).T
     results = np.argmax(results, axis=1)

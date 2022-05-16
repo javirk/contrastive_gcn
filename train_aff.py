@@ -51,6 +51,8 @@ def main(p):
     model = get_segmentation_model(p)
     model = nn.DataParallel(model)
     model.train()
+    # state_dict = torch.load('ckpt/20220516-092534_aff.pth', map_location=device)
+    # model.load_state_dict(state_dict['model'])
 
     crit_aff = ModelLossSemsegGatedCRF()
     crit_bce = BalancedCrossEntropyLoss()

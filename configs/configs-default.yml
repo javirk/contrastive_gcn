@@ -8,10 +8,11 @@ head:
   type: linear
   model: deeplab
 
-pretrained_model: None
+pretrained_backbone: 20220516-092534_aff.pth
+pretrained_gcn: None
 
 train_kwargs:
-  batch_size: 32
+  batch_size: 8
   lambda_contrastive: 0.5
 
 val_kwargs:

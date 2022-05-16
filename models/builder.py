@@ -27,20 +27,33 @@ class SegGCN(nn.Module):
 
     def _load_pretrained(self, p):
         device = next(self.encoder.parameters()).device
-        if p['pretrained_model'] != 'None':
-            state_dict = torch.load('ckpt/' + p['pretrained_model'], map_location=device)
+        if p['pretrained_backbone'] != 'None':
+            state_dict = torch.load('ckpt/' + p['pretrained_backbone'], map_location=device)
             if 'model' in state_dict.keys():
                 state_dict = state_dict['model']
             new_state = {}
             for k, v in state_dict.items():
                 if 'module' in k:
-                    print(k)
                     k = k.rsplit('module.')[1]
                 new_state[k] = v
-            msg = self.encoder.load_state_dict(new_state, strict=False)  # TODO: load also GCN
+            msg = self.encoder.load_state_dict(new_state, strict=False)
             print(msg)
         else:
-            print('No pretrained weights have been loaded')
+            print('No pretrained weights have been loaded for the backbone')
+
+        if p['pretrained_gcn'] != 'None':
+            state_dict = torch.load('ckpt/' + p['pretrained_gcn'], map_location=device)
+            if 'model' in state_dict.keys():
+                state_dict = state_dict['model']
+            new_state = {}
+            for k, v in state_dict.items():
+                if 'module' in k:
+                    k = k.rsplit('module.')[1]
+                new_state[k] = v
+            msg = self.graph.load_state_dict(new_state, strict=False)
+            print(msg)
+        else:
+            print('No pretrained weights have been loaded for the graph')
         return
 
     @torch.no_grad()
@@ -103,7 +116,7 @@ class SegGCN(nn.Module):
             mask_ori = (mask + torch.reshape(offset, [-1, 1, 1])) * mask  # all bg's to 0
             mask_ori = mask_ori.view(-1)
             mask_indexes = torch.nonzero(mask_ori).view(-1).squeeze()
-            mask_ori = torch.index_select(mask_ori, index=mask_indexes, dim=0) // 2
+            mask_ori = torch.div(torch.index_select(mask_ori, index=mask_indexes, dim=0), 2, rounding_mode='floor')
 
         # Run the main features through the GNN
         adj = aff_mat.to_sparse()
@@ -129,7 +142,7 @@ class SegGCN(nn.Module):
 
         logits /= self.T
 
-        self._dequeue_and_enqueue(feat_aug)
+        self._dequeue_and_enqueue(prototypes)
 
         if self.debug:
             q_var = torch.mean(torch.var(q, dim=0))
@@ -140,34 +153,26 @@ class SegGCN(nn.Module):
         return logits, mask_ori, dict_return
 
     @torch.no_grad()
-    def forward_val(self, img, data):
+    def forward_val(self, img):
         bs = img.shape[0]
+        radius = 4
 
-        out_dict = self.backbone(img)
-        embeddings = out_dict['embeddings']  # B x dim x H x W
-        pred_mask = out_dict['seg']
+        out_dict = self.encoder(img)
+        features, aff_mat, mask = out_dict['features'], out_dict['aff'], out_dict['seg']
+        f_h, f_w = features.shape[-2], features.shape[-1]
+        features = rearrange(features, 'b c h w -> (b h w) c')
 
-        embeddings = rearrange(embeddings, 'b d h w -> (b h w) d')
+        mask = nn.functional.interpolate(mask, size=(f_h, f_w))
+        mask = (mask > 0.5).int().squeeze(1)  # B x f_h x f_w
 
-        # The embeddings have to be averaged in the superpixel region.
-        # We don't care about the numbers themselves, only that they are distinct between samples in batch.
-        # Then we map them to be continuous
-        sp_seg_bs = data.sp_seg.view(bs, -1).max(1).values
-        sp_seg_bs = sp_seg_bs.roll(1)
-        sp_seg_bs[0] = 0
+        aff_mat = utils.generate_aff(f_h, f_w, aff_mat, radius=radius)  # B x f_h.f_w x f_h.f_w
+        aff_mat = torch.block_diag(*aff_mat)
+        adj = aff_mat.to_sparse()
 
-        offset_mask = torch.arange(0, bs, device=data.sp_seg.device)
-        offset_mask = torch.cumsum(sp_seg_bs, dim=0) + offset_mask
+        features = self.graph(features, adj)  # B.H.W x dim
+        features = nn.functional.normalize(features, dim=-1)
 
-        sp_seg = data.sp_seg + offset_mask.view(-1, 1, 1)
-        sp_seg = sp_seg.view(-1)
-
-        features_sp = scatter_mean(embeddings, sp_seg, dim=0)  # SP x dim (all the SP in the batch)
-
-        data.x = features_sp
-
-        features = self.graph(data.x, data.edge_index)['features']
-        return features, pred_mask, sp_seg
+        return features, mask
 
 
 # utils
