@@ -13,6 +13,7 @@ def get_optimizer(p, parameters):
         optimizer = torch.optim.SGD(parameters, **p['optimizer_kwargs'])
 
     elif p['optimizer'] == 'adam':
+        del p['optimizer_kwargs']['momentum'], p['optimizer_kwargs']['nesterov']
         optimizer = torch.optim.Adam(parameters, **p['optimizer_kwargs'])
 
     else:
