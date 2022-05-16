@@ -14,7 +14,7 @@ from libs.common_config import get_optimizer, adjust_learning_rate, get_dataset,
 parser = argparse.ArgumentParser()
 
 parser.add_argument('-c', '--config',
-                    default='configs/configs-default.yml',
+                    default='configs/configs-default_aff.yml',
                     type=str,
                     help='Path to the config file')
 parser.add_argument('-u', '--ubelix',
