@@ -11,7 +11,7 @@ head:
 pretrained_model: None
 
 train_kwargs:
-  batch_size: 64
+  batch_size: 32
   lambda_contrastive: 0.5
 
 val_kwargs:
