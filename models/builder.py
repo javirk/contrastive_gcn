@@ -119,13 +119,13 @@ class SegGCN(nn.Module):
             mask_ori = torch.div(torch.index_select(mask_ori, index=mask_indexes, dim=0), 2, rounding_mode='floor')
 
         # Run the main features through the GNN
-        adj = aff_mat.to_sparse()
+        adj = aff_mat.to_sparse().to(features.device)
         feat_ori = self.graph(features, adj)  # B.H.W x dim
         feat_ori = nn.functional.normalize(feat_ori, dim=-1)
 
         # Run the augmented features through the GNN
         with torch.no_grad():
-            adj_aug = aff_mat_aug.to_sparse()
+            adj_aug = aff_mat_aug.to_sparse().to(features.device)
             feat_aug = self.graph(features, adj_aug)  # B.H.W x dim
             feat_aug = rearrange(feat_aug, '(b hw) c -> b c hw', b=bs)  # B x dim x H.W
 
