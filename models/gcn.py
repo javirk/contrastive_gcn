@@ -13,22 +13,13 @@ class GCN(torch.nn.Module):
         self.conv3 = GCNConv(hidden_channels, output_dim, add_self_loops=False)
         # self.lin = Linear(hidden_channels, dataset.num_classes)
 
-    def forward(self, x, edge_index, batch=None):
-        # 1. Obtain node embeddings 
-        x = self.conv1(x, edge_index)
-        x = x.relu()
-        x = self.conv2(x, edge_index)
-        x = x.relu()
-        features = self.conv3(x, edge_index)
+    def forward(self, x, adj_sparse):
+        edge_index, edge_weight = adj_sparse.indices(), adj_sparse.values()
 
-        # 2. Readout layer
-        if batch is not None:
-            avg = global_mean_pool(features, batch)  # [batch_size, hidden_channels]
-        else:
-            avg = None
-        #
-        # # 3. Apply a final classifier
-        # x = F.dropout(x, p=0.5, training=self.training)
-        # x = self.lin(x)
+        x = self.conv1(x, edge_index, edge_weight)
+        x = x.relu()
+        x = self.conv2(x, edge_index, edge_weight)
+        x = x.relu()
+        x = self.conv3(x, edge_index, edge_weight)
 
-        return {'features': features, 'avg_pool': avg}
+        return x

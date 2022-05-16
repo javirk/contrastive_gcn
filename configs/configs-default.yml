@@ -8,7 +8,6 @@ head:
   type: linear
   model: deeplab
 
-
 pretrained_model: None
 
 train_kwargs:
@@ -33,9 +32,9 @@ seggcn_kwargs:
   T: 0.5
 
 gcn_kwargs:
-  ndim: 64
-  hidden_channels: 32
-  output_dim: 32
+  ndim: 5632
+  hidden_channels: 2048  # I don't know
+  output_dim: 1024  # I don't know
 
 logs:
   writing_freq: 10

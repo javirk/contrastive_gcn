@@ -31,7 +31,7 @@ FLAGS, unparsed = parser.parse_known_args()
 # def main(rank, world_size, p):
 def main(p):
     current_time = datetime.now().strftime("%Y%m%d-%H%M%S")
-    p['checkpoint'] = f'./ckpt/{current_time}.pth'
+    p['checkpoint'] = f'./ckpt/{current_time}_aff.pth'
     utils.copy_file(FLAGS.config, f'runs/{current_time}.yml')  # This should be improved in the future maybe
 
     if p['ubelix'] == 1:
@@ -49,10 +49,6 @@ def main(p):
                             num_workers=num_workers, pin_memory=True)
 
     model = get_segmentation_model(p)
-    # gcn = GCN(num_features=p['gcn_kwargs']['ndim'], hidden_channels=p['gcn_kwargs']['hidden_channels'],
-    #           output_dim=p['gcn_kwargs']['output_dim'])
-
-    # model = SegGCN(p, backbone=backbone, graph_network=gcn).to(device)
     model = nn.DataParallel(model)
     model.train()
 

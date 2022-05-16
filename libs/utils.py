@@ -149,8 +149,29 @@ def copy_file(src, dst):
     except shutil.SameFileError:
         pass
 
+
 def unfold(img, radius):
     assert img.dim() == 4, 'Unfolding requires NCHW batch'
     N, C, H, W = img.shape
     diameter = 2 * radius + 1
     return F.unfold(img, diameter, 1, radius).view(N, C, diameter, diameter, H, W)
+
+
+def generate_aff(f_w, f_h, aff_mat, radius):
+    bs = aff_mat.shape[0]
+    aff = torch.zeros([bs, f_w * f_h, f_w * f_h])
+    aff_mask = torch.zeros([bs, f_w, f_h])
+    aff_mask_pad = F.pad(aff_mask, (radius, radius, radius, radius), 'constant')
+    # aff_mat = torch.squeeze(aff_mat)
+    for i in range(f_w):
+        for j in range(f_h):
+            ind = i * f_h + j
+            center_x = i + radius
+            center_y = j + radius
+            aff_mask_pad[:, center_x - radius: (center_x + radius + 1),
+            center_y - radius: (center_y + radius + 1)] = aff_mat[:, :, :, i, j]
+            aff_mask_nopad = aff_mask_pad[:, radius:-radius, radius:-radius]
+            aff[:, ind] = aff_mask_nopad.reshape(bs, -1)
+            aff_mask_pad = 0 * aff_mask_pad
+
+    return aff

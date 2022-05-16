@@ -4,7 +4,7 @@ import torch.nn.functional as F
 import libs.utils as utils
 
 
-def train(p, train_loader, model, optimizer, epoch, device):
+def train_seg(p, train_loader, model, graph_tr, optimizer, epoch, device):
     losses = utils.AverageMeter('Loss', ':.4e')
     contrastive_losses = utils.AverageMeter('Contrastive', ':.4e')
     cam_losses = utils.AverageMeter('Cam_loss', ':.4e')
@@ -21,15 +21,11 @@ def train(p, train_loader, model, optimizer, epoch, device):
 
     for i, batch in enumerate(train_loader):
         input_batch = batch['img'].to(device)
-        data_batch = batch['data'].to(device)
-        print(data_batch)
-        data_aug_batch = batch['data_aug'].to(device)
-        mask = batch['sal'].to(device)
 
         optimizer.zero_grad()
         # cam = utils.get_cam_segmentation(input_batch)
 
-        logits, labels, cam_loss, other_res = model(input_batch, mask, data_batch, data_aug_batch)
+        logits, labels, other_res = model(input_batch, graph_tr)
 
         # Use E-Net weighting for calculating the pixel-wise loss.
         uniq, freq = torch.unique(labels, return_counts=True)
@@ -40,9 +36,8 @@ def train(p, train_loader, model, optimizer, epoch, device):
         contrastive_loss = cross_entropy(logits, labels, weight=w_class, reduction='mean')
 
         # Calculate total loss and update meters
-        loss = contrastive_loss * p['train_kwargs']['lambda_contrastive'] + cam_loss
+        loss = contrastive_loss * p['train_kwargs']['lambda_contrastive']
         contrastive_losses.update(contrastive_loss.item())
-        cam_losses.update(cam_loss.item())
         losses.update(loss.item())
         if model.module.debug:
             q_var.update(other_res['q_var'])
@@ -66,7 +61,7 @@ def train(p, train_loader, model, optimizer, epoch, device):
 def train_aff(p, train_loader, model, crit_aff, crit_bce, optimizer, epoch, device):
     radius = 4
     losses_meter = utils.AverageMeter('Loss', ':.4e')
-    ce_loss_meter = utils.AverageMeter('Contrastive', ':.4e')
+    ce_loss_meter = utils.AverageMeter('CE_loss', ':.4e')
     aff_loss_meter = utils.AverageMeter('Affinity regularized', ':.4e')
     cam_losses_meter = utils.AverageMeter('Cam_loss', ':.4e')
     progress_vars = [losses_meter, ce_loss_meter, aff_loss_meter, cam_losses_meter]
@@ -145,7 +140,6 @@ def train_aff(p, train_loader, model, crit_aff, crit_bce, optimizer, epoch, devi
             progress.to_wandb(step_logging, prefix='train')
             progress.reset()
             # progress.display(i)
-
 
 
 @torch.no_grad()

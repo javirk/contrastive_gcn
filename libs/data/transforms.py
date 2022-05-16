@@ -38,7 +38,7 @@ class NodeDropping(BaseTransform):
     def __call__(self, data):
         all_nodes = np.array(list(range(data.x.shape[0])))
         keep_indices = torch.tensor(np.random.choice(all_nodes, size=int(all_nodes[-1] * self.percentage_keep),
-                                                   replace=False))
+                                                     replace=False))
 
         edge_index, edge_attr = subgraph(keep_indices, data.edge_index, relabel_nodes=True)
         x = torch.index_select(data.x, index=keep_indices, dim=0)
@@ -50,12 +50,55 @@ class NodeDropping(BaseTransform):
         if self.return_nodes:
             keep_nodes = torch.zeros(len(all_nodes))
             keep_nodes[keep_indices] = 1
-            data.keep_nodes = keep_nodes #.unsqueeze(0)
+            data.keep_nodes = keep_nodes  # .unsqueeze(0)
 
         return data
 
     def __repr__(self) -> str:
         return f'{self.__class__.__name__}'
+
+
+class AffinityPerturbation:
+    """
+    Perturb the weights of an affinity matrix just slightly
+    """
+    def __init__(self, p=0.2, threshold=0.5, perturb_triangular=True):
+        self.p = p
+        self.threshold = threshold
+        self.perturb_triangular = perturb_triangular
+
+    def __call__(self, X):
+        mask = (torch.rand(X.shape) < self.p)
+        perturb_mat = torch.rand_like(X) * mask
+        # if not self.perturb_diagonal:
+        #     diagonal_free_mat = torch.ones_like(perturb_mat) - \
+        #                         torch.eye(perturb_mat.shape[-1]).repeat(perturb_mat.shape[0], 1, 1)
+        #     perturb_mat = perturb_mat * diagonal_free_mat
+
+        if self.perturb_triangular:
+            tri = torch.triu(perturb_mat, diagonal=1)
+            perturb_mat = tri + torch.transpose(tri, 1, 2)
+
+        X = X + perturb_mat
+
+        # Apply threshold
+        X[X < self.threshold] = 0
+
+        return X
+
+
+class AffinityDropping:
+    def __init__(self, p=0.1):
+        super(AffinityDropping, self).__init__()
+        self.p = p
+
+    def __call__(self, X):
+        num_nodes_discard = int(X.shape[-1] * self.p)
+        nodes_discard = torch.randint(0, X.shape[-1], size=(X.shape[0], num_nodes_discard))
+        dropped_X = X.clone()
+        for i in range(X.shape[0]):
+            dropped_X[i, nodes_discard[i]] = dropped_X[i, :, nodes_discard[i]] = 0
+        return dropped_X
 
 
 class ToTensor(ToTensorV2):
