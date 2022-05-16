@@ -10,6 +10,7 @@ from models.gcn import GCN
 from models.builder import SegGCN
 import libs.utils as utils
 from libs.train_utils import train_seg
+from libs.losses import BalancedCrossEntropyLoss
 from libs.common_config import get_optimizer, get_sal_transforms, get_joint_transforms, adjust_learning_rate, get_dataset,\
     get_image_transforms, get_segmentation_model
 from libs.data.transforms import AffinityPerturbation, AffinityDropping
@@ -56,6 +57,8 @@ def main(p):
     model.train()
     model.module.encoder.eval()
 
+    crit_bce = BalancedCrossEntropyLoss()
+
     optimizer = get_optimizer(p, model.parameters())
     graph_transformation = Compose([AffinityDropping(), AffinityPerturbation(p=0.05)])
 
@@ -63,7 +66,7 @@ def main(p):
         lr = adjust_learning_rate(p, optimizer, epoch)
         print('Adjusted learning rate to {:.5f}'.format(lr))
 
-        train_seg(p, dataloader, model, graph_transformation, optimizer, epoch, device)
+        train_seg(p, dataloader, model, crit_bce, graph_transformation, optimizer, epoch, device)
 
         torch.save({'optimizer': optimizer.state_dict(), 'model': model.module.graph.state_dict(),
                     'epoch': epoch + 1}, p['checkpoint'])

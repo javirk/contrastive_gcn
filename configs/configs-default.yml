@@ -34,8 +34,8 @@ seggcn_kwargs:
 
 gcn_kwargs:
   ndim: 5632
-  hidden_channels: 2048  # I don't know
-  output_dim: 1024  # I don't know
+  hidden_channels: 1024  # I don't know
+  output_dim: 512  # I don't know
 
 logs:
   writing_freq: 10

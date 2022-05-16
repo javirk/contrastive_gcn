@@ -1,10 +1,11 @@
 import torch
+import torch.nn as nn
 from torch.nn.functional import cross_entropy
 import torch.nn.functional as F
 import libs.utils as utils
 
 
-def train_seg(p, train_loader, model, graph_tr, optimizer, epoch, device):
+def train_seg(p, train_loader, model, crit_bce, graph_tr, optimizer, epoch, device):
     losses = utils.AverageMeter('Loss', ':.4e')
     contrastive_losses = utils.AverageMeter('Contrastive', ':.4e')
     cam_losses = utils.AverageMeter('Cam_loss', ':.4e')
@@ -21,11 +22,16 @@ def train_seg(p, train_loader, model, graph_tr, optimizer, epoch, device):
 
     for i, batch in enumerate(train_loader):
         input_batch = batch['img'].to(device)
+        saliency = batch['sal'].to(device)  # Just the saliency (Bx1xHxW)
+
 
         optimizer.zero_grad()
         # cam = utils.get_cam_segmentation(input_batch)
 
-        logits, labels, other_res = model(input_batch, graph_tr)
+        logits, labels, pred_sal, other_res = model(input_batch, graph_tr)
+        saliency = nn.functional.interpolate(saliency, size=pred_sal.shape[2:])
+
+        sal_loss = crit_bce(pred_sal, saliency)
 
         # Use E-Net weighting for calculating the pixel-wise loss.
         uniq, freq = torch.unique(labels, return_counts=True)
@@ -36,12 +42,12 @@ def train_seg(p, train_loader, model, graph_tr, optimizer, epoch, device):
         contrastive_loss = cross_entropy(logits, labels, weight=w_class, reduction='mean')
 
         # Calculate total loss and update meters
-        loss = contrastive_loss * p['train_kwargs']['lambda_contrastive']
+        loss = contrastive_loss + sal_loss
         contrastive_losses.update(contrastive_loss.item())
-        losses.update(loss.item())
+        cam_losses.update(sal_loss.item())
         if model.module.debug:
-            q_var.update(other_res['q_var'])
-            aug_var.update(other_res['aug_var'])
+            q_var.update(other_res['q_var'].item())
+            aug_var.update(other_res['aug_var'].item())
 
         loss.backward()
         optimizer.step()

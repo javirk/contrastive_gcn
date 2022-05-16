@@ -2,7 +2,6 @@ import os
 import torch
 import torch.nn as nn
 import torch.distributed as dist
-from libs.losses import BalancedCrossEntropyLoss, ModelLossSemsegGatedCRF
 from torch_geometric.loader import DataLoader
 import wandb
 import argparse
@@ -10,6 +9,7 @@ from datetime import datetime
 from models.gcn import GCN
 from models.builder import SegGCN
 import libs.utils as utils
+from libs.losses import BalancedCrossEntropyLoss, ModelLossSemsegGatedCRF
 from libs.train_utils import train_aff
 from libs.common_config import get_optimizer, get_sal_transforms, get_joint_transforms, adjust_learning_rate, \
     get_dataset, get_image_transforms, get_segmentation_model

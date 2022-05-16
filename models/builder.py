@@ -37,7 +37,7 @@ class SegGCN(nn.Module):
                     k = k.rsplit('module.')[1]
                 new_state[k] = v
             msg = self.encoder.load_state_dict(new_state, strict=False)
-            print(msg)
+            print('Backbone: ', msg)
         else:
             print('No pretrained weights have been loaded for the backbone')
 
@@ -51,7 +51,7 @@ class SegGCN(nn.Module):
                     k = k.rsplit('module.')[1]
                 new_state[k] = v
             msg = self.graph.load_state_dict(new_state, strict=False)
-            print(msg)
+            print('Graph: ', msg)
         else:
             print('No pretrained weights have been loaded for the graph')
         return
@@ -120,13 +120,13 @@ class SegGCN(nn.Module):
 
         # Run the main features through the GNN
         adj = aff_mat.to_sparse().to(features.device)
-        feat_ori = self.graph(features, adj)  # B.H.W x dim
+        feat_ori, sal = self.graph(features, adj, batch_size=bs, f_h=f_h, f_w=f_w)  # B.H.W x dim
         feat_ori = nn.functional.normalize(feat_ori, dim=-1)
 
         # Run the augmented features through the GNN
         with torch.no_grad():
             adj_aug = aff_mat_aug.to_sparse().to(features.device)
-            feat_aug = self.graph(features, adj_aug)  # B.H.W x dim
+            feat_aug, _ = self.graph(features, adj_aug)  # B.H.W x dim
             feat_aug = rearrange(feat_aug, '(b hw) c -> b c hw', b=bs)  # B x dim x H.W
 
             mask_k = mask.reshape(bs, -1, 1).float()  # B x H.W x 1
@@ -150,7 +150,7 @@ class SegGCN(nn.Module):
             dict_return['q_var'] = q_var
             dict_return['aug_var'] = aug_var
 
-        return logits, mask_ori, dict_return
+        return logits, mask_ori, sal, dict_return
 
     @torch.no_grad()
     def forward_val(self, img):
