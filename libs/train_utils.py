@@ -46,8 +46,8 @@ def train_seg(p, train_loader, model, crit_bce, graph_tr, optimizer, epoch, devi
         contrastive_losses.update(contrastive_loss.item())
         cam_losses.update(sal_loss.item())
         if model.module.debug:
-            q_var.update(other_res['q_var'].item())
-            aug_var.update(other_res['aug_var'].item())
+            q_var.update(other_res['q_var'])
+            aug_var.update(other_res['aug_var'])
 
         loss.backward()
         optimizer.step()
