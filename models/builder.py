@@ -99,7 +99,7 @@ class SegGCN(nn.Module):
             mask = nn.functional.interpolate(mask, size=(f_h, f_w))
             mask = (mask > 0.5).int().squeeze(1)  # B x f_h x f_w
 
-            aff_mat = utils.generate_aff(f_h, f_w, aff_mat, radius=radius)  # B x f_h.f_w x f_h.f_w
+            aff_mat = utils.generate_aff(f_h, f_w, aff_mat, radius=radius).to(features.device)  # B x f_h.f_w x f_h.f_w
 
             features = rearrange(features, 'b c h w -> b (h w) c')
 
