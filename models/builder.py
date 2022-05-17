@@ -101,14 +101,14 @@ class SegGCN(nn.Module):
 
             aff_mat = utils.generate_aff(f_h, f_w, aff_mat, radius=radius)  # B x f_h.f_w x f_h.f_w
 
-            features = rearrange(features, 'b c h w -> (b h w) c')
+            features = rearrange(features, 'b c h w -> b (h w) c')
 
             # THE AUGMENTATIONS NOW
             aff_mat_aug = graph_transforms(aff_mat.clone())
 
             # Unbatched affinity matrix
-            aff_mat = torch.block_diag(*aff_mat)
-            aff_mat_aug = torch.block_diag(*aff_mat_aug)
+            # aff_mat = torch.block_diag(*aff_mat)
+            # aff_mat_aug = torch.block_diag(*aff_mat_aug)
 
         # Prepare the mask and logits (in mask_ori)
         with torch.no_grad():
@@ -119,15 +119,16 @@ class SegGCN(nn.Module):
             mask_ori = torch.div(torch.index_select(mask_ori, index=mask_indexes, dim=0), 2, rounding_mode='floor')
 
         # Run the main features through the GNN
-        adj = aff_mat.to_sparse().to(features.device)
-        feat_ori, sal = self.graph(features, adj, batch_size=bs, f_h=f_h, f_w=f_w)  # B.H.W x dim
+        # adj = aff_mat.to_sparse().to(features.device)
+        feat_ori, sal = self.graph(features, aff_mat, batch_size=bs, f_h=f_h, f_w=f_w)  # B x H.W x dim
+        feat_ori = rearrange(feat_ori, 'b hw c -> (b hw) c')  # B.H.W x dim
         feat_ori = nn.functional.normalize(feat_ori, dim=-1)
 
         # Run the augmented features through the GNN
         with torch.no_grad():
-            adj_aug = aff_mat_aug.to_sparse().to(features.device)
-            feat_aug, _ = self.graph(features, adj_aug)  # B.H.W x dim
-            feat_aug = rearrange(feat_aug, '(b hw) c -> b c hw', b=bs)  # B x dim x H.W
+            # adj_aug = aff_mat_aug.to_sparse().to(features.device)
+            feat_aug, _ = self.graph(features, aff_mat_aug)  # B x H.W x dim
+            feat_aug = rearrange(feat_aug, 'b hw c -> b c hw')  # B x dim x H.W
 
             mask_k = mask.reshape(bs, -1, 1).float()  # B x H.W x 1
             prototypes_foreground = torch.bmm(feat_aug, mask_k).squeeze(-1)  # B x dim
@@ -146,7 +147,7 @@ class SegGCN(nn.Module):
 
         if self.debug:
             q_var = torch.mean(torch.var(q, dim=0))
-            aug_var = torch.mean(torch.var(feat_aug, dim=1))
+            aug_var = torch.mean(torch.var(prototypes, dim=1))
             dict_return['q_var'] = q_var
             dict_return['aug_var'] = aug_var
 

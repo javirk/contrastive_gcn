@@ -42,7 +42,7 @@ def train_seg(p, train_loader, model, crit_bce, graph_tr, optimizer, epoch, devi
         contrastive_loss = cross_entropy(logits, labels, weight=w_class, reduction='mean')
 
         # Calculate total loss and update meters
-        loss = contrastive_loss + sal_loss
+        loss = p['train_kwargs']['lambda_contrastive']*contrastive_loss + sal_loss
         contrastive_losses.update(contrastive_loss.item())
         cam_losses.update(sal_loss.item())
         if model.module.debug:
@@ -153,7 +153,7 @@ def accuracy(output, target, topk=(1,)):
     maxk = max(topk)
     batch_size = target.size(0)
     if batch_size == 0:
-        return 0
+        return [0]
     _, pred = output.topk(maxk, 1, True, True)
     pred = pred.t()
     correct = pred.eq(target.view(1, -1).expand_as(pred))

@@ -6,7 +6,7 @@ from torch_geometric.loader import DataLoader
 import wandb
 import argparse
 from datetime import datetime
-from models.gcn import GCN
+from models.gcn import GCN, AGNN
 from models.builder import SegGCN
 import libs.utils as utils
 from libs.train_utils import train_seg
@@ -49,8 +49,8 @@ def main(p):
 
     # backbone = UNet(p, n_channels=3, n_classes=1)
     encoder = get_segmentation_model(p)
-    gcn = GCN(num_features=p['gcn_kwargs']['ndim'], hidden_channels=p['gcn_kwargs']['hidden_channels'],
-              output_dim=p['gcn_kwargs']['output_dim'])
+    gcn = AGNN(num_features=p['gcn_kwargs']['ndim'], hidden_channels=p['gcn_kwargs']['hidden_channels'],
+               output_dim=p['gcn_kwargs']['output_dim'])
 
     model = SegGCN(p, encoder=encoder, graph_network=gcn).to(device)
     model = nn.DataParallel(model)
