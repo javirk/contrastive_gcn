@@ -13,7 +13,7 @@ pretrained_gcn: None
 
 train_kwargs:
   batch_size: 32
-  lambda_contrastive: 0.5
+  lambda_contrastive: 1
 
 val_kwargs:
   batch_size: 128
