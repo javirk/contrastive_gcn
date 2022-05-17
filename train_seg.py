@@ -60,7 +60,7 @@ def main(p):
     crit_bce = BalancedCrossEntropyLoss()
 
     optimizer = get_optimizer(p, model.parameters())
-    graph_transformation = Compose([AffinityDropping(), AffinityPerturbation(p=0.05)])
+    graph_transformation = Compose([AffinityDropping(p=0.1), AffinityPerturbation(p=0.05)])
 
     for epoch in range(p['epochs']):
         lr = adjust_learning_rate(p, optimizer, epoch)

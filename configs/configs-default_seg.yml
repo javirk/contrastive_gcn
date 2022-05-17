@@ -30,7 +30,7 @@ scheduler: poly
 
 seggcn_kwargs:
   K: 128
-  T: 0.5
+  T: 0.1
 
 gcn_kwargs:
   ndim: 5632
