@@ -152,6 +152,8 @@ def train_aff(p, train_loader, model, crit_aff, crit_bce, optimizer, epoch, devi
 def accuracy(output, target, topk=(1,)):
     maxk = max(topk)
     batch_size = target.size(0)
+    if batch_size == 0:
+        return 0
     _, pred = output.topk(maxk, 1, True, True)
     pred = pred.t()
     correct = pred.eq(target.view(1, -1).expand_as(pred))
