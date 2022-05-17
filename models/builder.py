@@ -86,7 +86,6 @@ class SegGCN(nn.Module):
         radius = 4
         dict_return = {}
         bs, c, h, w = img.size()
-        # keep_indices_aug = torch.where(data_aug.keep_nodes)[0]
 
         # Maybe the first part has to be taken from memory. Check if it takes a lot ot time
         with torch.no_grad():
@@ -95,7 +94,7 @@ class SegGCN(nn.Module):
             f_h, f_w = features.shape[-2], features.shape[-1]
 
             aff_mat = torch.pow(aff_mat, 1)  # This probably doesn't do anything
-            # mask = mask.softmax(dim=1)
+            mask = mask.sigmoid()
             mask = nn.functional.interpolate(mask, size=(f_h, f_w))
             mask = (mask > 0.5).int().squeeze(1)  # B x f_h x f_w
 

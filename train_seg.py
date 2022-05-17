@@ -60,7 +60,7 @@ def main(p):
     crit_bce = BalancedCrossEntropyLoss()
 
     optimizer = get_optimizer(p, model.parameters())
-    graph_transformation = Compose([AffinityDropping(p=0.1), AffinityPerturbation(p=0.05)])
+    graph_transformation = Compose([AffinityDropping(p=0.2), AffinityPerturbation(p=0.1)])
 
     for epoch in range(p['epochs']):
         lr = adjust_learning_rate(p, optimizer, epoch)
@@ -81,7 +81,7 @@ if __name__ == '__main__':
     num_workers = 8
 
     if FLAGS.ubelix == 0:
-        config['train_kwargs']['batch_size'] = 2
+        config['train_kwargs']['batch_size'] = 4
         num_workers = 0
 
     main(config)

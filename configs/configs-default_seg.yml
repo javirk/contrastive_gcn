@@ -12,7 +12,7 @@ pretrained_backbone: 20220516-092534_aff.pth
 pretrained_gcn: None
 
 train_kwargs:
-  batch_size: 32
+  batch_size: 64
   lambda_contrastive: 1
 
 val_kwargs:
@@ -22,7 +22,7 @@ val_kwargs:
 epochs: 120
 optimizer: sgd
 optimizer_kwargs:
-   lr: 0.004
+   lr: 0.5
    weight_decay: 0.0001
    momentum: 0.9
    nesterov: False
