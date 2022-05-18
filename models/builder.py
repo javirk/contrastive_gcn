@@ -1,3 +1,4 @@
+import copy
 import torch
 import torch.nn as nn
 from torch_scatter import scatter_mean
@@ -16,7 +17,7 @@ class SegGCN(nn.Module):
 
         self.encoder = encoder
         self.graph = graph_network
-        self.graph_k = graph_network
+        self.graph_k = copy.deepcopy(graph_network)
 
         for param_q, param_k in zip(self.graph.parameters(), self.graph_k.parameters()):
             param_k.data.copy_(param_q.data)  # initialize
