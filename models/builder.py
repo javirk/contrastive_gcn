@@ -12,9 +12,15 @@ class SegGCN(nn.Module):
         self.debug = debug
         self.K = p['seggcn_kwargs']['K']
         self.T = p['seggcn_kwargs']['T']
+        self.m = p['seggcn_kwargs']['m']
 
         self.encoder = encoder
         self.graph = graph_network
+        self.graph_k = graph_network
+
+        for param_q, param_k in zip(self.graph.parameters(), self.graph_k.parameters()):
+            param_k.data.copy_(param_q.data)  # initialize
+            param_k.requires_grad = False  # not update by gradient
 
         self.dim = p['gcn_kwargs']['output_dim']
         self.register_buffer("queue", torch.randn(self.dim, self.K))
@@ -55,6 +61,14 @@ class SegGCN(nn.Module):
         else:
             print('No pretrained weights have been loaded for the graph')
         return
+
+    @torch.no_grad()
+    def _momentum_update_key_encoder(self):
+        """
+        Momentum update of the key encoder
+        """
+        for param_q, param_k in zip(self.graph.parameters(), self.graph_k.parameters()):
+            param_k.data = param_k.data * self.m + param_q.data * (1. - self.m)
 
     @torch.no_grad()
     def _dequeue_and_enqueue(self, keys):
@@ -130,8 +144,9 @@ class SegGCN(nn.Module):
 
         # Run the augmented features through the GNN
         with torch.no_grad():
+            self._momentum_update_key_encoder()  # update the key encoder
             # adj_aug = aff_mat_aug.to_sparse().to(features.device)
-            feat_aug, _ = self.graph(features, aff_mat_aug)  # B x H.W x dim
+            feat_aug, _ = self.graph_k(features, aff_mat_aug)  # B x H.W x dim
             feat_aug = rearrange(feat_aug, 'b hw c -> b c hw')  # B x dim x H.W
 
             mask_k = mask.reshape(bs, -1, 1).float()  # B x H.W x 1
