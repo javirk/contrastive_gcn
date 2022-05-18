@@ -44,6 +44,7 @@ def train_seg(p, train_loader, model, crit_bce, graph_tr, optimizer, epoch, devi
         loss = p['train_kwargs']['lambda_contrastive'] * contrastive_loss + sal_loss
         contrastive_losses.update(contrastive_loss.item())
         cam_losses.update(sal_loss.item())
+        losses.update(loss.item())
         if model.module.debug:
             q_var.update(other_res['q_var'])
             aug_var.update(other_res['aug_var'])

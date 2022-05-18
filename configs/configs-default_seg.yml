@@ -20,13 +20,13 @@ val_kwargs:
 
 # Optimizer
 epochs: 120
-optimizer: adam
+optimizer: sgd
 optimizer_kwargs:
-   lr: 0.0003
+   lr: 0.01
    weight_decay: 0.0001
    momentum: 0.9
    nesterov: False
-scheduler: constant
+scheduler: poly
 
 seggcn_kwargs:
   K: 128
