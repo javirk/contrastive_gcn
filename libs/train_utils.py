@@ -23,13 +23,12 @@ def train_seg(p, train_loader, model, crit_bce, graph_tr, optimizer, epoch, devi
     for i, batch in enumerate(train_loader):
         input_batch = batch['img'].to(device)
         saliency = batch['sal'].to(device)  # Just the saliency (Bx1xHxW)
-
+        saliency = nn.functional.interpolate(saliency, size=(saliency.shape[-2] // 8, saliency.shape[-1] // 8))
 
         optimizer.zero_grad()
         # cam = utils.get_cam_segmentation(input_batch)
 
-        logits, labels, pred_sal, other_res = model(input_batch, graph_tr)
-        saliency = nn.functional.interpolate(saliency, size=pred_sal.shape[2:])
+        logits, labels, pred_sal, other_res = model(input_batch, saliency, graph_tr)
 
         sal_loss = crit_bce(pred_sal, saliency)
 

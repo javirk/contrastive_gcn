@@ -77,26 +77,28 @@ class SegGCN(nn.Module):
         else:
             return self.forward_val(*args)
 
-    def forward_train(self, img, graph_transforms):
+    def forward_train(self, img, mask, graph_transforms):
         """
         :param img:
+        :param mask:
         :param graph_transforms:
         :return:
         """
         radius = 4
         dict_return = {}
         bs, c, h, w = img.size()
+        mask = mask.squeeze(dim=1)
 
         # Maybe the first part has to be taken from memory. Check if it takes a lot ot time
         with torch.no_grad():
             out_dict = self.encoder(img, radius=radius)
-            features, aff_mat, mask = out_dict['features'], out_dict['aff'], out_dict['seg']
+            features, aff_mat = out_dict['features'], out_dict['aff']
             f_h, f_w = features.shape[-2], features.shape[-1]
 
             aff_mat = torch.pow(aff_mat, 1)  # This probably doesn't do anything
-            mask = mask.sigmoid()
-            mask = nn.functional.interpolate(mask, size=(f_h, f_w))
-            mask = (mask > 0.5).int().squeeze(1)  # B x f_h x f_w
+            # mask = mask.sigmoid()
+            # mask = nn.functional.interpolate(mask, size=(f_h, f_w))
+            # mask = (mask > 0.5).int().squeeze(1)  # B x f_h x f_w
 
             aff_mat = utils.generate_aff(f_h, f_w, aff_mat, radius=radius)  # B x f_h.f_w x f_h.f_w
 
@@ -118,6 +120,7 @@ class SegGCN(nn.Module):
             mask_ori = mask_ori.view(-1)
             mask_indexes = torch.nonzero(mask_ori).view(-1).squeeze()
             mask_ori = torch.div(torch.index_select(mask_ori, index=mask_indexes, dim=0), 2, rounding_mode='floor')
+            mask_ori = mask_ori.long()
 
         # Run the main features through the GNN
         # adj = aff_mat.to_sparse().to(features.device)
