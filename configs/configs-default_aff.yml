@@ -15,7 +15,7 @@ train_kwargs:
   lambda_contrastive: 0.5
 
 val_kwargs:
-  batch_size: 128
+  batch_size: 16
 
 # Optimizer
 epochs: 120

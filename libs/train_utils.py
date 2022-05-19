@@ -73,7 +73,10 @@ def forward_aff(p, loader, model, crit_aff, crit_bce, optimizer, epoch, device, 
     progress_vars = [losses_meter, ce_loss_meter, aff_loss_meter, cam_losses_meter]
 
     progress = utils.ProgressMeter(len(loader), progress_vars, prefix="Epoch: [{}]".format(epoch))
-    model.train()
+    if phase == 'train':
+        model.train()
+    else:
+        model.eval()
 
     for i, batch in enumerate(loader):
         input_batch = batch['img'].to(device)
