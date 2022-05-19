@@ -185,6 +185,7 @@ class SegGCN(nn.Module):
         aff_mat = utils.generate_aff(f_h, f_w, aff_mat, radius=radius)  # B x f_h.f_w x f_h.f_w
         if apply_transforms is not None:
             aff_mat = apply_transforms(aff_mat)
+        aff_mat = aff_mat.to(features.device)
 
         features, _ = self.graph(features, aff_mat)  # B x H.W x dim
         features = nn.functional.normalize(features, dim=-1)
