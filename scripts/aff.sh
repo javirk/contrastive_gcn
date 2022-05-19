@@ -40,4 +40,4 @@
 module load Anaconda3
 eval "$(conda shell.bash hook)"
 conda activate pygt
-PYTHONPATH="../" python ./train_aff.py --config configs/configs-default.yml
+PYTHONPATH="../" python ./train_aff.py --config configs/configs-default_aff.yml

@@ -55,6 +55,7 @@ def main(p):
 
     model = get_segmentation_model(p)
     model = nn.DataParallel(model)
+    model.to(device)
     model.train()
 
     crit_aff = ModelLossSemsegGatedCRF()
