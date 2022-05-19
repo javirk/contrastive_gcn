@@ -2,6 +2,7 @@ import torch
 import math
 import numpy as np
 import os
+import albumentations as A
 import torchvision.transforms as T
 from libs.data.transforms import NodeDropping, EdgePerturbation, ToTensor
 from models.backbones.unet import UNet
@@ -55,21 +56,22 @@ def get_augmentation_transforms(p):
     return T.Compose([NodeDropping(percentage_keep=0.90), EdgePerturbation()])
 
 
-def get_image_transforms(p):
-    import albumentations as A
+def get_train_transforms(p):
     return A.Compose([
-        A.Resize(p['resolution'], p['resolution']),
-        A.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))
+        A.RandomResizedCrop(p['resolution'], p['resolution'], scale=(0.2, 1.)),
     ])
-    # return T.Compose([T.ToTensor(), T.Resize((224, 224)), T.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))])
+
+def get_val_transforms(p):
+    return A.Compose([
+        A.Resize(p['resolution'], p['resolution'])
+    ])
 
 def get_sal_transforms(p):
-    import albumentations as A
     return A.Compose([A.Resize(p['resolution'] // 8, p['resolution'] // 8)])
 
 def get_joint_transforms(p):
-    import albumentations as A
     return A.Compose([
+        A.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
         ToTensor(transpose_mask=True)
     ])
 
@@ -119,7 +121,8 @@ def get_segmentation_model(p):
     # Get head
     if p['head']['model'] == 'deeplab' and p['backbone'] != 'unet':
         from models.modules.deeplab import DeepLabHead
-        nc = p['gcn_kwargs']['ndim']  # Because ndim in gcn_kwargs is the input dim
+        # nc = p['gcn_kwargs']['ndim']  # Because ndim in gcn_kwargs is the input dim
+        nc = 1
         head = DeepLabHead(backbone_channels, nc)
 
     else:

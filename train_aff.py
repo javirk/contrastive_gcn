@@ -10,9 +10,9 @@ from models.gcn import GCN
 from models.builder import SegGCN
 import libs.utils as utils
 from libs.losses import BalancedCrossEntropyLoss, ModelLossSemsegGatedCRF
-from libs.train_utils import train_aff
+from libs.train_utils import forward_aff
 from libs.common_config import get_optimizer, get_sal_transforms, get_joint_transforms, adjust_learning_rate, \
-    get_dataset, get_image_transforms, get_segmentation_model
+    get_dataset, get_train_transforms, get_val_transforms, get_segmentation_model
 
 parser = argparse.ArgumentParser()
 
@@ -28,7 +28,6 @@ parser.add_argument('-u', '--ubelix',
 FLAGS, unparsed = parser.parse_known_args()
 
 
-# def main(rank, world_size, p):
 def main(p):
     current_time = datetime.now().strftime("%Y%m%d-%H%M%S")
     p['checkpoint'] = f'./ckpt/{current_time}_aff.pth'
@@ -40,19 +39,23 @@ def main(p):
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
     sal_tf = get_sal_transforms(p)
-    image_tf = get_image_transforms(p)
+    image_train_tf = get_train_transforms(p)
+    image_val_tf = get_val_transforms(p)
     joint_tf = get_joint_transforms(p)
 
-    dataset = get_dataset(p, root='data/', image_set='trainaug', transform=image_tf, sal_transform=sal_tf,
-                          joint_transform=joint_tf)
-    dataloader = DataLoader(dataset, batch_size=p['train_kwargs']['batch_size'], shuffle=True, drop_last=True,
+    train_dataset = get_dataset(p, root='data/', image_set='trainaug', transform=image_train_tf, sal_transform=sal_tf,
+                                joint_transform=joint_tf)
+    train_loader = DataLoader(train_dataset, batch_size=p['train_kwargs']['batch_size'], shuffle=True, drop_last=True,
+                              num_workers=num_workers, pin_memory=True)
+
+    val_dataset = get_dataset(p, root='data/', image_set='val', transform=image_val_tf, sal_transform=sal_tf,
+                              joint_transform=joint_tf)
+    val_loader = DataLoader(val_dataset, batch_size=p['val_kwargs']['batch_size'], shuffle=False, drop_last=False,
                             num_workers=num_workers, pin_memory=True)
 
     model = get_segmentation_model(p)
     model = nn.DataParallel(model)
     model.train()
-    # state_dict = torch.load('ckpt/20220516-092534_aff.pth', map_location=device)
-    # model.load_state_dict(state_dict['model'])
 
     crit_aff = ModelLossSemsegGatedCRF()
     crit_bce = BalancedCrossEntropyLoss()
@@ -63,7 +66,8 @@ def main(p):
         lr = adjust_learning_rate(p, optimizer, epoch)
         print('Adjusted learning rate to {:.5f}'.format(lr))
 
-        train_aff(p, dataloader, model, crit_aff, crit_bce, optimizer, epoch, device)
+        forward_aff(p, train_loader, model, crit_aff, crit_bce, optimizer, epoch, device, phase='train')
+        forward_aff(p, val_loader, model, crit_aff, crit_bce, optimizer, epoch, device, phase='val')
 
         torch.save({'optimizer': optimizer.state_dict(), 'model': model.state_dict(),
                     'epoch': epoch + 1}, p['checkpoint'])
@@ -79,13 +83,7 @@ if __name__ == '__main__':
 
     if FLAGS.ubelix == 0:
         config['train_kwargs']['batch_size'] = 4
+        config['val_kwargs']['batch_size'] = 4
         num_workers = 0
 
     main(config)
-
-    # world_size = torch.cuda.device_count()
-    # print('Let\'s use', world_size, 'GPUs!')
-    # if world_size > 0:
-    #     mp.spawn(main, args=(world_size, config), nprocs=world_size, join=True)
-    # else:
-    #     main('cpu', 0, config)

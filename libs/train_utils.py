@@ -64,7 +64,7 @@ def train_seg(p, train_loader, model, crit_bce, graph_tr, optimizer, epoch, devi
             # progress.display(i)
 
 
-def train_aff(p, train_loader, model, crit_aff, crit_bce, optimizer, epoch, device):
+def forward_aff(p, loader, model, crit_aff, crit_bce, optimizer, epoch, device, phase='train'):
     radius = 4
     losses_meter = utils.AverageMeter('Loss', ':.4e')
     ce_loss_meter = utils.AverageMeter('CE_loss', ':.4e')
@@ -72,17 +72,19 @@ def train_aff(p, train_loader, model, crit_aff, crit_bce, optimizer, epoch, devi
     cam_losses_meter = utils.AverageMeter('Cam_loss', ':.4e')
     progress_vars = [losses_meter, ce_loss_meter, aff_loss_meter, cam_losses_meter]
 
-    progress = utils.ProgressMeter(len(train_loader), progress_vars, prefix="Epoch: [{}]".format(epoch))
+    progress = utils.ProgressMeter(len(loader), progress_vars, prefix="Epoch: [{}]".format(epoch))
     model.train()
 
-    for i, batch in enumerate(train_loader):
+    for i, batch in enumerate(loader):
         input_batch = batch['img'].to(device)
         saliency = batch['sal'].to(device)  # Just the saliency (Bx1xHxW)
         label = batch['sal_down'].to(device)
 
         optimizer.zero_grad()
 
-        output_dict = model(input_batch, radius=radius)
+        with torch.set_grad_enabled(phase == 'train'):
+            output_dict = model(input_batch, radius=radius)
+
         aff = output_dict['aff'].unsqueeze(dim=1)
         label = utils.unfold(label, radius=radius)
         N, _, H, W = output_dict['features'].shape
@@ -137,15 +139,21 @@ def train_aff(p, train_loader, model, crit_aff, crit_bce, optimizer, epoch, devi
         ce_loss_meter.update(ce_loss.item())
         cam_losses_meter.update(sal_loss.item())
 
-        loss.backward()
-        optimizer.step()
+        if phase == 'train':
+            loss.backward()
+            optimizer.step()
 
         # Display progress
-        if i % p['logs']['writing_freq'] == 0 and p['ubelix']:
-            step_logging = epoch * len(train_loader) + i
-            progress.to_wandb(step_logging, prefix='train')
+        if (i + 1) % p['logs']['writing_freq'] == 0 and p['ubelix'] and phase == 'train':
+            step_logging = epoch * len(loader) + i
+            progress.to_wandb(step_logging, prefix=phase)
             progress.reset()
-            # progress.display(i)
+
+    # Display progress
+    if p['ubelix'] and phase == 'val':
+        step_logging = (epoch + 1) * len(loader)
+        progress.to_wandb(step_logging, prefix=phase)
+        progress.reset()
 
 
 @torch.no_grad()

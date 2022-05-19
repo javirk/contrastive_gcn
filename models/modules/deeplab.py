@@ -129,17 +129,18 @@ class AffinityDeeplab(nn.Module):
             raise NotImplementedError('Head {} is currently not supported'.format(head))
 
         # Add classification head for saliency prediction
-        self.classification_head = nn.Conv2d(self.decoder[-1].out_channels, 1, 1, bias=False)
+        # self.classification_head = nn.Conv2d(self.decoder[-1].out_channels, 1, 1, bias=False)
 
     def forward(self, x, radius=4):
         # Standard model
         input_shape = x.shape[-2:]
         x_dict = self.backbone(x, radius)
         features, aff, aff_crf, x = x_dict['cat_features'], x_dict['aff'], x_dict['aff_crf'], x_dict['conv6']
-        embedding = self.decoder(x)
+        # embedding = self.decoder(x)
+        sal = self.decoder(x)
 
         # Head
-        sal = self.classification_head(embedding)
+        # sal = self.classification_head(embedding)
 
         # Upsample to input resolution
         if self.upsample:
