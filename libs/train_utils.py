@@ -64,7 +64,7 @@ def train_seg(p, train_loader, model, crit_bce, graph_tr, optimizer, epoch, devi
             # progress.display(i)
 
 
-def forward_aff(p, loader, model, crit_aff, crit_bce, optimizer, epoch, device, phase='train'):
+def forward_aff(p, loader, model, crit_aff, crit_bce, optimizer, epoch, device, phase='train', last_it=None):
     radius = 4
     losses_meter = utils.AverageMeter('Loss', ':.4e')
     ce_loss_meter = utils.AverageMeter('CE_loss', ':.4e')
@@ -74,8 +74,10 @@ def forward_aff(p, loader, model, crit_aff, crit_bce, optimizer, epoch, device, 
 
     progress = utils.ProgressMeter(len(loader), progress_vars, prefix="Epoch: [{}]".format(epoch))
     if phase == 'train':
+        last_it = -1
         model.train()
     else:
+        assert last_it is not None
         model.eval()
 
     for i, batch in enumerate(loader):
@@ -152,12 +154,14 @@ def forward_aff(p, loader, model, crit_aff, crit_bce, optimizer, epoch, device, 
             progress.to_wandb(step_logging, prefix=phase)
             progress.reset()
 
+        last_it = epoch * len(loader) + i if phase == 'train' else last_it
+
     # Display progress
     if p['ubelix'] and phase == 'val':
-        step_logging = (epoch + 1) * len(loader)
-        progress.to_wandb(step_logging, prefix=phase)
+        progress.to_wandb(last_it, prefix=phase)
         progress.reset()
 
+    return last_it
 
 @torch.no_grad()
 def accuracy(output, target, topk=(1,)):
