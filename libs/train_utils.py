@@ -57,7 +57,7 @@ def train_seg(p, train_loader, model, crit_bce, graph_tr, optimizer, epoch, devi
         top1.update(acc1[0], input_batch.size(0))
 
         # Display progress
-        if i % p['logs']['writing_freq'] == 0 and p['ubelix']:
+        if (i + 1) % p['logs']['writing_freq'] == 0 and p['ubelix']:
             step_logging = epoch * len(train_loader) + i
             progress.to_wandb(step_logging, prefix='train')
             progress.reset()

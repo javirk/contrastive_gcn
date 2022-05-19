@@ -12,6 +12,7 @@ from sklearn.cluster import MiniBatchKMeans
 from sklearn.decomposition import PCA
 from scipy.optimize import linear_sum_assignment
 from joblib import Parallel, delayed
+from einops import rearrange
 from libs.crf import dense_crf
 
 N_JOBS = 8
@@ -128,28 +129,31 @@ def eval_kmeans(p, val_dataset, n_clusters=21, compute_metrics=False, verbose=Tr
 
 
 @torch.no_grad()
-def save_embeddings_to_disk(p, val_loader, model, device, n_clusters=21, seed=1234):
+def save_embeddings_to_disk(p, val_loader, model, device, n_clusters=21, seed=1234, graph_transform=None):
     print('Save embeddings to disk ...')
     model.eval()
     ptr = 0
 
     all_prototypes = torch.zeros((len(val_loader.sampler), p['gcn_kwargs']['output_dim']))
-    all_cams = torch.zeros((len(val_loader.sampler), p['resolution'], p['resolution']))
+    all_masks = torch.zeros((len(val_loader.sampler), p['resolution'], p['resolution']))
     names = []
     for i, batch in enumerate(val_loader):
         input_batch = batch['img'].to(device)
 
-        features, mask = model(input_batch)
+        features, mask = model(input_batch, graph_transform)
+        mask = mask.sigmoid()
+        mask_resized = nn.functional.interpolate(mask, size=(input_batch.shape[-2] // 8, input_batch.shape[-1] // 8))
+        mask = mask.squeeze(1)
 
         # compute prototypes
-        bs, dim, _, _ = output.shape
-        output = output.reshape(bs, dim, -1)  # B x dim x H.W
-        sal_proto = mask.reshape(bs, -1, 1).type(output.dtype)  # B x H.W x 1
-        prototypes = torch.bmm(output, sal_proto * (sal_proto > 0.5).float()).squeeze()  # B x dim
+        bs, dim = features.shape[0], features.shape[-1]
+        features = rearrange(features, 'b hw d -> b d hw')
+        sal_proto = mask_resized.reshape(bs, -1, 1).type(features.dtype)  # B x f_h.f_w x 1
+        prototypes = torch.bmm(features, sal_proto * (sal_proto > 0.5).float()).squeeze()  # B x dim
         prototypes = nn.functional.normalize(prototypes, dim=1)
 
         all_prototypes[ptr: ptr + bs] = prototypes
-        all_cams[ptr: ptr + bs, :, :] = (mask > 0.5).float()
+        all_masks[ptr: ptr + bs, :, :] = (mask > 0.5).float()
         ptr += bs
 
         for name in batch['name']:
@@ -160,7 +164,7 @@ def save_embeddings_to_disk(p, val_loader, model, device, n_clusters=21, seed=12
 
     # perform kmeans
     all_prototypes = all_prototypes.cpu().numpy()
-    all_cams = all_cams.cpu().numpy()
+    all_masks = all_masks.cpu().numpy()
     n_clusters = n_clusters - 1
     print('Kmeans clustering to {} clusters'.format(n_clusters))
 
@@ -172,7 +176,7 @@ def save_embeddings_to_disk(p, val_loader, model, device, n_clusters=21, seed=12
 
     # save predictions
     for i, fname, pred in zip(range(len(val_loader.sampler)), names, prediction_kmeans):
-        prediction = all_cams[i].copy()
+        prediction = all_masks[i].copy()
         prediction[prediction == 1] = pred + 1
         np.save(os.path.join(p['embeddings_dir'], fname + '.npy'), prediction)
         if i % 300 == 0:

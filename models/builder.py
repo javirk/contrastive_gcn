@@ -174,23 +174,19 @@ class SegGCN(nn.Module):
         return logits, mask_ori, sal, dict_return
 
     @torch.no_grad()
-    def forward_val(self, img):
-        bs = img.shape[0]
+    def forward_val(self, img, apply_transforms=None):
         radius = 4
 
         out_dict = self.encoder(img)
         features, aff_mat, mask = out_dict['features'], out_dict['aff'], out_dict['seg']
         f_h, f_w = features.shape[-2], features.shape[-1]
-        features = rearrange(features, 'b c h w -> (b h w) c')
-
-        mask = nn.functional.interpolate(mask, size=(f_h, f_w))
-        mask = (mask > 0.5).int().squeeze(1)  # B x f_h x f_w
+        features = rearrange(features, 'b c h w -> b (h w) c')
 
         aff_mat = utils.generate_aff(f_h, f_w, aff_mat, radius=radius)  # B x f_h.f_w x f_h.f_w
-        aff_mat = torch.block_diag(*aff_mat)
-        adj = aff_mat.to_sparse()
+        if apply_transforms is not None:
+            aff_mat = apply_transforms(aff_mat)
 
-        features = self.graph(features, adj)  # B.H.W x dim
+        features, _ = self.graph(features, aff_mat)  # B x H.W x dim
         features = nn.functional.normalize(features, dim=-1)
 
         return features, mask

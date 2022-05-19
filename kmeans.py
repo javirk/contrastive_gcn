@@ -2,12 +2,14 @@ import torch
 from torch_geometric.loader import DataLoader
 import torch.nn as nn
 import argparse
+from torchvision.transforms import Compose
 import libs.utils as utils
-from libs.kmeans_utils import save_embeddings_to_disk, eval_kmeans
-from libs.data.mnist import MNISTSuperpixel
-from libs.common_config import get_image_transforms, get_dataset, get_segmentation_model
-from models.gcn import GCN
+from models.gcn import AGNN
 from models.builder import SegGCN
+from libs.data.transforms import AffinityPerturbation, AffinityDropping
+from libs.kmeans_utils import save_embeddings_to_disk, eval_kmeans
+from libs.common_config import get_image_transforms, get_sal_transforms, get_joint_transforms, get_dataset, \
+    get_segmentation_model
 
 parser = argparse.ArgumentParser()
 
@@ -15,10 +17,12 @@ parser.add_argument('-c', '--config',
                     default='configs/configs-default_aff.yml',
                     type=str,
                     help='Path to the config file')
+
 parser.add_argument('-u', '--ubelix',
                     default=1,
                     type=int,
                     help='Running on ubelix (0 is no)')
+
 parser.add_argument('-crf', '--crf-postprocessing',
                     type=utils.str2bool,
                     default=True,
@@ -30,17 +34,19 @@ FLAGS, unparsed = parser.parse_known_args()
 def main(p):
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
-    # dataset = MNISTSuperpixel('data/', train=False, download=True)
+    sal_tf = get_sal_transforms(p)
     image_tf = get_image_transforms(p)
-    dataset = get_dataset(p, root='data/', image_set='val', transform=image_tf)
-    dataloader = DataLoader(dataset, batch_size=p['val_kwargs']['batch_size'], shuffle=False, drop_last=False,
+    joint_tf = get_joint_transforms(p)
+    dataset = get_dataset(p, root='data/', image_set='val', transform=image_tf, sal_transform=sal_tf,
+                          joint_transform=joint_tf)
+    dataloader = DataLoader(dataset, batch_size=p['val_kwargs']['batch_size'], shuffle=True, drop_last=True,
                             num_workers=num_workers, pin_memory=True)
-    backbone = get_segmentation_model(p)
-    gcn = GCN(num_features=p['gcn_kwargs']['ndim'], hidden_channels=p['gcn_kwargs']['hidden_channels'],
-              output_dim=p['gcn_kwargs']['output_dim'])
 
-    model = SegGCN(p, backbone=backbone, graph_network=gcn)
-    model.to(device)
+    backbone = get_segmentation_model(p)
+    gcn = AGNN(num_features=p['gcn_kwargs']['ndim'], hidden_channels=p['gcn_kwargs']['hidden_channels'],
+               output_dim=p['gcn_kwargs']['output_dim'])
+
+    model = SegGCN(p, encoder=backbone, graph_network=gcn).to(device)
     model = nn.DataParallel(model)
     model.eval()
 
@@ -63,11 +69,11 @@ if __name__ == '__main__':
     num_workers = 8
 
     if FLAGS.ubelix == 0:
-        config['val_kwargs']['batch_size'] = 4
+        config['val_kwargs']['batch_size'] = 2
         num_workers = 0
 
     if 'runs' in FLAGS.config:
         date_run = FLAGS.config.split('/')[-1].split('.')[-2]
-        config['pretrained_model'] = date_run + '.pth'
+        config['pretrained_gcn'] = date_run + '_graph.pth'
 
     main(config)
