@@ -187,7 +187,7 @@ class SegGCN(nn.Module):
             aff_mat = apply_transforms(aff_mat)
         aff_mat = aff_mat.to(features.device)
 
-        features, _ = self.graph(features, aff_mat)  # B x H.W x dim
+        features, sal = self.graph(features, aff_mat, batch_size=features.shape[0], f_h=f_h, f_w=f_w)  # B x H.W x dim
         features = nn.functional.normalize(features, dim=-1)
 
         return features, mask

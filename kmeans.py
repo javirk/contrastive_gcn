@@ -23,6 +23,11 @@ parser.add_argument('-u', '--ubelix',
                     type=int,
                     help='Running on ubelix (0 is no)')
 
+parser.add_argument('-r', '--resolution',
+                    default=512,
+                    type=int,
+                    help='Square resolution')
+
 parser.add_argument('-crf', '--crf-postprocessing',
                     type=utils.str2bool,
                     default=True,
@@ -64,6 +69,8 @@ if __name__ == '__main__':
     config_env = utils.read_config('configs/env_configs.yml')
     config.update(config_env)
     config.update(vars(FLAGS))
+
+    print(f'Using file {FLAGS.config}')
 
     config['ubelix'] = FLAGS.ubelix
     num_workers = 8

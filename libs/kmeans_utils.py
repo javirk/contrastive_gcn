@@ -29,8 +29,6 @@ def eval_kmeans(p, val_dataset, n_clusters=21, compute_metrics=False, verbose=Tr
     # Load all pixel embeddings
     all_pixels = np.zeros((len(val_dataset) * p['resolution'] * p['resolution']), dtype=np.float32)
     all_gt = np.zeros((len(val_dataset) * p['resolution'] * p['resolution']), dtype=np.float32)
-    # all_pixels = np.zeros((10 * p['resolution'] * p['resolution']), dtype=np.float32)
-    # all_gt = np.zeros((10 * p['resolution'] * p['resolution']), dtype=np.float32)
     offset_ = 0
 
     for i, sample in enumerate(val_dataset):
@@ -54,7 +52,7 @@ def eval_kmeans(p, val_dataset, n_clusters=21, compute_metrics=False, verbose=Tr
             embedding = cv2.resize(embedding, gt.shape[::-1], interpolation=cv2.INTER_NEAREST)
 
         if p['crf_postprocessing']:
-            embedding = dense_crf(sample['img'], embedding)
+            embedding = dense_crf(sample['img'], embedding, n_classes=n_classes)
             embedding = embedding.argmax(axis=0)  # It's a np array
 
         # Put the reshaped ground truth in the array
@@ -139,9 +137,10 @@ def save_embeddings_to_disk(p, val_loader, model, device, n_clusters=21, seed=12
     names = []
     for i, batch in enumerate(val_loader):
         input_batch = batch['img'].to(device)
+        mask = batch['sal'].to(device)
 
-        features, mask = model(input_batch, graph_transform)
-        mask = mask.sigmoid()
+        features, _ = model(input_batch, graph_transform)
+        # mask = mask.sigmoid()
         mask_resized = nn.functional.interpolate(mask, size=(input_batch.shape[-2] // 8, input_batch.shape[-1] // 8))
         mask = mask.squeeze(1)
 
