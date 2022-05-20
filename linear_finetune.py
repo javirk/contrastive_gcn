@@ -46,6 +46,7 @@ def main(p):
     p['checkpoint'] = f'./ckpt/{current_time}_lc.pth'
     p['best_model'] = f'./ckpt/{current_time}_bestmodel.pth'
     p['save_dir'] = 'results/linear_finetune/'
+    utils.dict_to_file(p, f'runs/{current_time}.yml')
     # utils.copy_file(FLAGS.config, f'runs/{current_time}.yml')  # This should be improved in the future maybe
 
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
@@ -156,12 +157,13 @@ if __name__ == "__main__":
         config['val_kwargs']['batch_size'] = 4
         num_workers = 0
 
-    if 'runs' in FLAGS.config_aff:
-        date_run = FLAGS.config_aff.split('/')[-1].split('.')[-2]
+    if 'runs' in FLAGS.affinity_config:
+        date_run = FLAGS.affinity_config.split('/')[-1].split('.')[-2]
         config['pretrained_backbone'] = date_run + '_aff.pth'
 
-    if 'runs' in FLAGS.config_seg:
-        date_run = FLAGS.config_seg.split('/')[-1].split('.')[-2]
+    if 'runs' in FLAGS.segmentation_config:
+        date_run = FLAGS.segmentation_config.split('/')[-1].split('.')[-2]
         config['pretrained_gcn'] = date_run + '_graph.pth'
 
+    print(config)
     main(config)

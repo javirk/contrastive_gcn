@@ -35,11 +35,8 @@ FLAGS, unparsed = parser.parse_known_args()
 def main(p):
     current_time = datetime.now().strftime("%Y%m%d-%H%M%S")
     p['checkpoint'] = f'./ckpt/{current_time}_graph.pth'
-    utils.copy_file(FLAGS.config, f'runs/{current_time}.yml')  # This should be improved in the future maybe
+    utils.dict_to_file(p, f'runs/{current_time}.yml')
 
-    if p['ubelix'] == 1:
-        wandb.init(project='Contrastive-Graphs', config=p, name=current_time + '_seg',
-                   notes=f"{p['dataset']} - {p['backbone']}")
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
     sal_tf = get_sal_transforms(p)
@@ -101,6 +98,7 @@ if __name__ == '__main__':
         num_workers = 0
 
     if 'runs' in FLAGS.affinity_config:
+        print(f'Using run {FLAGS.affinity_config}')
         date_run = FLAGS.affinity_config.split('/')[-1].split('.')[-2]
         config_seg['pretrained_backbone'] = date_run + '_aff.pth'
     print(config_seg)

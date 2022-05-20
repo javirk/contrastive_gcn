@@ -9,7 +9,7 @@
 #SBATCH --account=ws_00000
 
 # Job name
-#SBATCH --job-name="graph_contrastive"
+#SBATCH --job-name="linear_classifier"
 
 # Partition
 #SBATCH --partition=gpu-invest # all, gpu, phi, long
@@ -26,7 +26,7 @@
 ##SBATCH --ntasks-per-node=1
 
 # on gpu partition
-#SBATCH --gres=gpu:rtx3090:1
+#SBATCH --gres=gpu:rtx3090:2
 
 # Set the current working directory.
 # All relative paths used in the job script are relative to this directory
@@ -40,4 +40,4 @@
 module load Anaconda3
 eval "$(conda shell.bash hook)"
 conda activate pygt
-PYTHONPATH="../" python ./prof.py --configs configs/configs-default.yaml
+PYTHONPATH="../" python ./linear_finetune.py --config configs/configs-default_lc.yml -ac runs/20220519-151113.yml -sc runs/20220520-155322.yml

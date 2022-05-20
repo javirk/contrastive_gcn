@@ -38,11 +38,8 @@ class SegGCN(nn.Module):
             state_dict = torch.load('ckpt/' + p['pretrained_backbone'], map_location=device)
             if 'model' in state_dict.keys():
                 state_dict = state_dict['model']
-            new_state = {}
-            for k, v in state_dict.items():
-                if 'module' in k:
-                    k = k.rsplit('module.')[1]
-                new_state[k] = v
+            new_state = utils.remove_module(state_dict)
+
             msg = self.encoder.load_state_dict(new_state, strict=False)
             print('Backbone: ', msg)
         else:
@@ -52,11 +49,8 @@ class SegGCN(nn.Module):
             state_dict = torch.load('ckpt/' + p['pretrained_gcn'], map_location=device)
             if 'model' in state_dict.keys():
                 state_dict = state_dict['model']
-            new_state = {}
-            for k, v in state_dict.items():
-                if 'module' in k:
-                    k = k.rsplit('module.')[1]
-                new_state[k] = v
+            new_state = utils.remove_module(state_dict)
+
             msg = self.graph.load_state_dict(new_state, strict=False)
             print('Graph: ', msg)
         else:

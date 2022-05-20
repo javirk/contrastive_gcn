@@ -1,0 +1,42 @@
+dataset: PASCAL
+num_classes: 21
+resolution: 224
+backbone: resnet38_aff
+backbone_kwargs:  # It only has effect on resnet
+  dilated: False
+head:
+  type: linear
+  model: deeplab
+
+pretrained_backbone: None
+pretrained_gcn: None
+
+train_kwargs:
+  batch_size: 64
+  lambda_contrastive: 1
+
+val_kwargs:
+  batch_size: 128
+
+# Optimizer
+epochs: 120
+optimizer: sgd
+optimizer_kwargs:
+   lr: 0.01
+   weight_decay: 0.0001
+   momentum: 0.9
+   nesterov: False
+scheduler: poly
+
+seggcn_kwargs:
+  K: 128
+  T: 0.5
+  m: 0.999 # Momentum
+
+gcn_kwargs:
+  ndim: 5632
+  hidden_channels: 256  # I don't know
+  output_dim: 32  # I don't know
+
+logs:
+  writing_freq: 10

@@ -94,6 +94,14 @@ def read_config(path):
         data = yaml.load(f, Loader=yaml.FullLoader)
     return data
 
+def remove_module(state_dict):
+    new_state = {}
+    for k, v in state_dict.items():
+        if 'module' in k:
+            k = k.rsplit('module.')[1]
+        new_state[k] = v
+    return new_state
+
 
 class AverageMeter(object):
     def __init__(self, name, fmt=':f'):
@@ -191,6 +199,10 @@ def copy_file(src, dst):
         shutil.copy(src, dst)
     except shutil.SameFileError:
         pass
+
+def dict_to_file(d, dst):
+    with open(dst, 'w') as outfile:
+        yaml.dump(d, outfile, default_flow_style=False)
 
 
 def unfold(img, radius):
