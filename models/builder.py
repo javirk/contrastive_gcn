@@ -86,8 +86,8 @@ class SegGCN(nn.Module):
 
         self.queue_ptr[0] = ptr
 
-    def forward(self, *args):
-        if self.training:
+    def forward(self, *args, training_branch=False):
+        if self.training or training_branch:
             return self.forward_train(*args)
         else:
             return self.forward_val(*args)

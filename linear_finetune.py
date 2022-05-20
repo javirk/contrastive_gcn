@@ -15,6 +15,14 @@ from libs.finetune_utils import save_results_to_disk, eval_segmentation_supervis
 
 # Parser
 parser = argparse.ArgumentParser(description='Fully-supervised segmentation - Finetune linear layer')
+parser.add_argument('-sc', '--segmentation-config',
+                    type=str,
+                    help='Config file for the environment')
+
+parser.add_argument('-ac', '--affinity-config',
+                    type=str,
+                    help='Config file for the environment')
+
 parser.add_argument('-c', '--config',
                     default='configs/configs-default_lc.yml',
                     type=str,
@@ -136,6 +144,8 @@ def main(p):
 
 
 if __name__ == "__main__":
+    config_aff = utils.read_config(FLAGS.affinity_config)
+    config_seg = utils.read_config(FLAGS.segmentation_config)
     config = utils.read_config(FLAGS.config)
     config['ubelix'] = FLAGS.ubelix
 
@@ -146,8 +156,11 @@ if __name__ == "__main__":
         config['val_kwargs']['batch_size'] = 4
         num_workers = 0
 
-    if 'runs' in FLAGS.config:
-        date_run = FLAGS.config.split('/')[-1].split('.')[-2]
+    if 'runs' in FLAGS.config_aff:
+        date_run = FLAGS.config_aff.split('/')[-1].split('.')[-2]
+        config['pretrained_backbone'] = date_run + '_aff.pth'
+    if 'runs' in FLAGS.config_seg:
+        date_run = FLAGS.config_seg.split('/')[-1].split('.')[-2]
         config['pretrained_gcn'] = date_run + '_graph.pth'
 
     main(config)

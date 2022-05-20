@@ -34,7 +34,7 @@ def forward_seg(p, train_loader, model, crit_bce, graph_tr, optimizer, epoch, de
         # cam = utils.get_cam_segmentation(input_batch)
 
         with torch.set_grad_enabled(phase == 'train'):
-            logits, labels, pred_sal, other_res = model(input_batch, saliency, graph_tr)
+            logits, labels, pred_sal, other_res = model(input_batch, saliency, graph_tr, training_branch=True)
 
         sal_loss = crit_bce(pred_sal, saliency)
 
