@@ -159,6 +159,7 @@ if __name__ == "__main__":
     if 'runs' in FLAGS.config_aff:
         date_run = FLAGS.config_aff.split('/')[-1].split('.')[-2]
         config['pretrained_backbone'] = date_run + '_aff.pth'
+
     if 'runs' in FLAGS.config_seg:
         date_run = FLAGS.config_seg.split('/')[-1].split('.')[-2]
         config['pretrained_gcn'] = date_run + '_graph.pth'

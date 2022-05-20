@@ -5,7 +5,7 @@ import torch.nn.functional as F
 import libs.utils as utils
 
 
-def forward_seg(p, train_loader, model, crit_bce, graph_tr, optimizer, epoch, device, phase='train', last_it=None):
+def forward_seg(p, loader, model, crit_bce, graph_tr, optimizer, epoch, device, phase='train', last_it=None):
     losses = utils.AverageMeter('Loss', ':.4e')
     contrastive_losses = utils.AverageMeter('Contrastive', ':.4e')
     cam_losses = utils.AverageMeter('Cam_loss', ':.4e')
@@ -17,7 +17,7 @@ def forward_seg(p, train_loader, model, crit_bce, graph_tr, optimizer, epoch, de
         aug_var = utils.AverageMeter('Aug_Var', '.4e')
         progress_vars.extend([q_var, aug_var])
 
-    progress = utils.ProgressMeter(len(train_loader), progress_vars, prefix="Epoch: [{}]".format(epoch))
+    progress = utils.ProgressMeter(len(loader), progress_vars, prefix="Epoch: [{}]".format(epoch))
     if phase == 'train':
         last_it = -1
         model.train()
@@ -25,7 +25,7 @@ def forward_seg(p, train_loader, model, crit_bce, graph_tr, optimizer, epoch, de
         assert last_it is not None
         model.eval()
 
-    for i, batch in enumerate(train_loader):
+    for i, batch in enumerate(loader):
         input_batch = batch['img'].to(device)
         saliency = batch['sal_down'].to(device)  # Just the saliency (Bx1xHxW)
         # saliency = nn.functional.interpolate(saliency, size=(saliency.shape[-2] // 8, saliency.shape[-1] // 8))
@@ -64,11 +64,12 @@ def forward_seg(p, train_loader, model, crit_bce, graph_tr, optimizer, epoch, de
         top1.update(acc1[0], input_batch.size(0))
 
         # Display progress
-        if (i + 1) % p['logs']['writing_freq'] == 0 and p['ubelix']:
-            step_logging = epoch * len(train_loader) + i
+        if (i + 1) % p['logs']['writing_freq'] == 0 and p['ubelix'] and phase == 'train':
+            step_logging = epoch * len(loader) + i
             progress.to_wandb(step_logging, prefix='train')
             progress.reset()
-            # progress.display(i)
+
+        last_it = epoch * len(loader) + i if phase == 'train' else last_it
 
     # Display progress
     if p['ubelix'] and phase == 'val':

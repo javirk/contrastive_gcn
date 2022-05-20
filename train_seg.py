@@ -74,8 +74,10 @@ def main(p):
         lr = adjust_learning_rate(p, optimizer, epoch)
         print('Adjusted learning rate to {:.5f}'.format(lr))
 
-        last_it = forward_seg(p, train_loader, model, crit_bce, graph_transformation, optimizer, epoch, device, phase='train')
-        forward_seg(p, val_loader, model, crit_bce, graph_transformation, optimizer, epoch, device, phase='val', last_it=last_it)
+        last_it = forward_seg(p, train_loader, model, crit_bce, graph_transformation, optimizer, epoch, device,
+                              phase='train')
+        forward_seg(p, val_loader, model, crit_bce, graph_transformation, optimizer, epoch, device, phase='val',
+                    last_it=last_it)
 
         torch.save({'optimizer': optimizer.state_dict(), 'model': model.module.graph.state_dict(),
                     'epoch': epoch + 1}, p['checkpoint'])
