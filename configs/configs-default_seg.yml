@@ -8,7 +8,7 @@ head:
   type: linear
   model: deeplab
 
-pretrained_backbone: 20220516-092534_aff.pth
+pretrained_backbone: None
 pretrained_gcn: None
 
 train_kwargs:

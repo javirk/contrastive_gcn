@@ -1,13 +1,10 @@
 import os
 import torch
 import torch.nn as nn
-import torch.distributed as dist
-from torch_geometric.loader import DataLoader
+from torch.utils.data import DataLoader
 import wandb
 import argparse
 from datetime import datetime
-from models.gcn import GCN
-from models.builder import SegGCN
 import libs.utils as utils
 from libs.losses import BalancedCrossEntropyLoss, ModelLossSemsegGatedCRF
 from libs.train_utils import forward_aff

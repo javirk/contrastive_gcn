@@ -89,11 +89,15 @@ class Pascal(Dataset):
             semseg = transformed['masks'][1]
             saliency_downsampled = transformed['masks'][2]
 
-        return {'img': img, 'name': filename, 'semseg': semseg, 'sal': saliency, 'sal_down': saliency_downsampled}
+        return {'img': img, 'name': filename, 'semseg': semseg.squeeze(0).long(), 'sal': saliency,
+                'sal_down': saliency_downsampled}
 
     def _read_saliency(self, index):
         saliency = np.array(Image.open(self.saliencies[index])) / 255.
         return saliency[..., None]
+
+    def get_class_names(self):
+        return self.VOC_CATEGORY_NAMES
 
 
 if __name__ == '__main__':

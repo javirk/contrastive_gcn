@@ -5,7 +5,7 @@ import torch.nn.functional as F
 import libs.utils as utils
 
 
-def train_seg(p, train_loader, model, crit_bce, graph_tr, optimizer, epoch, device):
+def forward_seg(p, train_loader, model, crit_bce, graph_tr, optimizer, epoch, device, phase='train', last_it=None):
     losses = utils.AverageMeter('Loss', ':.4e')
     contrastive_losses = utils.AverageMeter('Contrastive', ':.4e')
     cam_losses = utils.AverageMeter('Cam_loss', ':.4e')
@@ -18,7 +18,12 @@ def train_seg(p, train_loader, model, crit_bce, graph_tr, optimizer, epoch, devi
         progress_vars.extend([q_var, aug_var])
 
     progress = utils.ProgressMeter(len(train_loader), progress_vars, prefix="Epoch: [{}]".format(epoch))
-    model.train()
+    if phase == 'train':
+        last_it = -1
+        model.train()
+    else:
+        assert last_it is not None
+        model.eval()
 
     for i, batch in enumerate(train_loader):
         input_batch = batch['img'].to(device)
@@ -28,7 +33,8 @@ def train_seg(p, train_loader, model, crit_bce, graph_tr, optimizer, epoch, devi
         optimizer.zero_grad()
         # cam = utils.get_cam_segmentation(input_batch)
 
-        logits, labels, pred_sal, other_res = model(input_batch, saliency, graph_tr)
+        with torch.set_grad_enabled(phase == 'train'):
+            logits, labels, pred_sal, other_res = model(input_batch, saliency, graph_tr)
 
         sal_loss = crit_bce(pred_sal, saliency)
 
@@ -49,8 +55,9 @@ def train_seg(p, train_loader, model, crit_bce, graph_tr, optimizer, epoch, devi
             q_var.update(other_res['q_var'])
             aug_var.update(other_res['aug_var'])
 
-        loss.backward()
-        optimizer.step()
+        if phase == 'train':
+            loss.backward()
+            optimizer.step()
 
         # Here are the metrics
         acc1 = accuracy(logits, labels, topk=(1,))
@@ -62,6 +69,13 @@ def train_seg(p, train_loader, model, crit_bce, graph_tr, optimizer, epoch, devi
             progress.to_wandb(step_logging, prefix='train')
             progress.reset()
             # progress.display(i)
+
+    # Display progress
+    if p['ubelix'] and phase == 'val':
+        progress.to_wandb(last_it, prefix=phase)
+        progress.reset()
+
+    return last_it
 
 
 def forward_aff(p, loader, model, crit_aff, crit_bce, optimizer, epoch, device, phase='train', last_it=None):
@@ -175,3 +189,31 @@ def accuracy(output, target, topk=(1,)):
         correct_k = correct[:k].view(-1).float().sum(0, keepdim=True)
         res.append(correct_k.mul_(100.0 / batch_size))
     return res
+
+def train_segmentation_vanilla(p, train_loader, model, criterion, optimizer, epoch, device):
+    """ Train a segmentation model in a fully-supervised manner """
+    losses = utils.AverageMeter('Loss', ':.4e')
+    semseg_meter = utils.SemsegMeter(p['num_classes'], train_loader.dataset.get_class_names(), has_bg=False,
+                                     ignore_index=255)
+    progress = utils.ProgressMeter(len(train_loader), [losses], prefix="Epoch: [{}]".format(epoch))
+
+    model.train()
+
+    for i, batch in enumerate(train_loader):
+        images = batch['img'].to(device)
+        targets = batch['semseg'].to(device)
+
+        output = model(images)
+        loss = criterion(output, targets)
+        losses.update(loss.item())
+        semseg_meter.update(torch.argmax(output, dim=1), targets)
+
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+
+        if i % 100 == 0:
+            progress.display(i)
+
+    eval_results = semseg_meter.return_score(verbose=True)
+    return eval_results

@@ -2,23 +2,26 @@ import os
 import torch
 import torch.nn as nn
 from torchvision.transforms import Compose
-from torch_geometric.loader import DataLoader
+from torch.utils.data import DataLoader
 import wandb
 import argparse
 from datetime import datetime
-from models.gcn import GCN, AGNN
+from models.gcn import AGNN
 from models.builder import SegGCN
 import libs.utils as utils
-from libs.train_utils import train_seg
+from libs.train_utils import forward_seg
 from libs.losses import BalancedCrossEntropyLoss
 from libs.common_config import get_optimizer, get_sal_transforms, get_joint_transforms, adjust_learning_rate, get_dataset,\
-    get_image_transforms, get_segmentation_model
+    get_train_transforms, get_segmentation_model, get_val_transforms
 from libs.data.transforms import AffinityPerturbation, AffinityDropping
 
 parser = argparse.ArgumentParser()
 
 parser.add_argument('-c', '--config',
-                    default='configs/configs-default_aff.yml',
+                    default='configs/configs-default_seg.yml',
+                    type=str,
+                    help='Path to the config file')
+parser.add_argument('-ac', '--affinity-config',
                     type=str,
                     help='Path to the config file')
 parser.add_argument('-u', '--ubelix',
@@ -40,14 +43,19 @@ def main(p):
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
     sal_tf = get_sal_transforms(p)
-    image_tf = get_image_transforms(p)
+    image_train_tf = get_train_transforms(p)
+    image_val_tf = get_val_transforms(p)
     joint_tf = get_joint_transforms(p)
-    dataset = get_dataset(p, root='data/', image_set='trainaug', transform=image_tf, sal_transform=sal_tf,
-                          joint_transform=joint_tf)
-    dataloader = DataLoader(dataset, batch_size=p['train_kwargs']['batch_size'], shuffle=True, drop_last=True,
+    train_dataset = get_dataset(p, root='data/', image_set='trainaug', transform=image_train_tf, sal_transform=sal_tf,
+                                joint_transform=joint_tf)
+    train_loader = DataLoader(train_dataset, batch_size=p['train_kwargs']['batch_size'], shuffle=True, drop_last=True,
+                              num_workers=num_workers, pin_memory=True)
+
+    val_dataset = get_dataset(p, root='data/', image_set='val', transform=image_val_tf, sal_transform=sal_tf,
+                              joint_transform=joint_tf)
+    val_loader = DataLoader(val_dataset, batch_size=p['val_kwargs']['batch_size'], shuffle=True, drop_last=True,
                             num_workers=num_workers, pin_memory=True)
 
-    # backbone = UNet(p, n_channels=3, n_classes=1)
     encoder = get_segmentation_model(p)
     gcn = AGNN(num_features=p['gcn_kwargs']['ndim'], hidden_channels=p['gcn_kwargs']['hidden_channels'],
                output_dim=p['gcn_kwargs']['output_dim'])
@@ -66,7 +74,8 @@ def main(p):
         lr = adjust_learning_rate(p, optimizer, epoch)
         print('Adjusted learning rate to {:.5f}'.format(lr))
 
-        train_seg(p, dataloader, model, crit_bce, graph_transformation, optimizer, epoch, device)
+        last_it = forward_seg(p, train_loader, model, crit_bce, graph_transformation, optimizer, epoch, device, phase='train')
+        forward_seg(p, val_loader, model, crit_bce, graph_transformation, optimizer, epoch, device, phase='val', last_it=last_it)
 
         torch.save({'optimizer': optimizer.state_dict(), 'model': model.module.graph.state_dict(),
                     'epoch': epoch + 1}, p['checkpoint'])
@@ -75,13 +84,22 @@ def main(p):
 
 
 if __name__ == '__main__':
+    # This the configuration for the previous affinity.
+    # We read it and then update the parameters with the FLAGS.config file
+    config_seg = utils.read_config(FLAGS.affinity_config)
     config = utils.read_config(FLAGS.config)
-    config['ubelix'] = FLAGS.ubelix
+    config_seg.update(config)
+
+    config_seg['ubelix'] = FLAGS.ubelix
 
     num_workers = 8
 
     if FLAGS.ubelix == 0:
-        config['train_kwargs']['batch_size'] = 4
+        config_seg['train_kwargs']['batch_size'] = 4
         num_workers = 0
 
-    main(config)
+    if 'runs' in FLAGS.affinity_config:
+        date_run = FLAGS.affinity_config.split('/')[-1].split('.')[-2]
+        config_seg['pretrained_backbone'] = date_run + '_aff.pth'
+    print(config_seg)
+    main(config_seg)
