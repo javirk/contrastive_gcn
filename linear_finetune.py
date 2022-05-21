@@ -51,7 +51,7 @@ def main(p):
     # utils.copy_file(FLAGS.config, f'runs/{current_time}.yml')  # This should be improved in the future maybe
 
     if p['ubelix'] == 1:
-        wandb.init(project='Contrastive-Graphs', config=p, name=current_time + '_aff',
+        wandb.init(project='Contrastive-Graphs', config=p, name=current_time + '_lc',
                    notes=f"{p['dataset']} - {p['backbone']}")
 
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
@@ -126,7 +126,7 @@ def main(p):
         step = len(train_loader) * (epoch + 1)
         # Evaluate online -> This will use batched eval where every image is resized to the same resolution.
         print('Evaluate ...')
-        eval_val = eval_segmentation_supervised_online(p, val_loader, model, device, step)
+        eval_val = eval_segmentation_supervised_online(p, val_loader, model, step, device)
 
         if eval_val['mIoU'] > best_iou:
             print('Found new best model: %.2f -> %.2f (mIoU)' % (100 * best_iou, 100 * eval_val['mIoU']))
