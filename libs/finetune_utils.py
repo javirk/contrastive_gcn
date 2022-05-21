@@ -39,7 +39,7 @@ def eval_segmentation_supervised_online(p, val_loader, model, step, device, verb
         semseg_meter.update(torch.argmax(output, dim=1), targets)
 
     eval_results = semseg_meter.return_score(verbose=verbose)
-    wandb.log(eval_results['mIoU'], step=step)
+    wandb.log({'val/mIoU': eval_results['mIoU']}, step=step)
     return eval_results
 
 
