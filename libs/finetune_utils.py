@@ -8,6 +8,7 @@ import imageio
 import numpy as np
 import torch
 import torch.nn.functional as F
+import wandb
 from PIL import Image
 from libs.utils import SemsegMeter
 
@@ -17,7 +18,7 @@ from libs.utils import SemsegMeter
 
 
 @torch.no_grad()
-def eval_segmentation_supervised_online(p, val_loader, model, device, verbose=True):
+def eval_segmentation_supervised_online(p, val_loader, model, step, device, verbose=True):
     """ Evaluate a segmentation network
         The evaluation is performed online, without storing the results.
 
@@ -38,6 +39,7 @@ def eval_segmentation_supervised_online(p, val_loader, model, device, verbose=Tr
         semseg_meter.update(torch.argmax(output, dim=1), targets)
 
     eval_results = semseg_meter.return_score(verbose=verbose)
+    wandb.log(eval_results['mIoU'], step=step)
     return eval_results
 
 

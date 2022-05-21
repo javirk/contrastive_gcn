@@ -40,4 +40,4 @@
 module load Anaconda3
 eval "$(conda shell.bash hook)"
 conda activate pygt
-PYTHONPATH="../" python ./linear_finetune.py --config configs/configs-default_lc.yml -ac runs/20220519-151113.yml -sc runs/20220520-155322.yml
+PYTHONPATH="../" python ./linear_finetune.py --config configs/configs-default_lc.yml -ac runs/20220519-151113.yml -sc runs/20220520-155322.yml -crf False

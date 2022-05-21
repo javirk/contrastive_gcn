@@ -12,17 +12,17 @@ pretrained_backbone: None
 pretrained_gcn: None
 
 train_kwargs:
-  batch_size: 64
+  batch_size: 16
   lambda_contrastive: 1
 
 val_kwargs:
-  batch_size: 128
+  batch_size: 16
 
 # Optimizer
-epochs: 120
+epochs: 60
 optimizer: sgd
 optimizer_kwargs:
-   lr: 0.01
+   lr: 0.1
    weight_decay: 0.0001
    momentum: 0.9
    nesterov: False
@@ -39,4 +39,4 @@ gcn_kwargs:
   output_dim: 32  # I don't know
 
 logs:
-  writing_freq: 10
+  writing_freq: 50

@@ -1,6 +1,7 @@
 import argparse
 import os
 from datetime import datetime
+import wandb
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
@@ -48,6 +49,10 @@ def main(p):
     p['save_dir'] = 'results/linear_finetune/'
     utils.dict_to_file(p, f'runs/{current_time}.yml')
     # utils.copy_file(FLAGS.config, f'runs/{current_time}.yml')  # This should be improved in the future maybe
+
+    if p['ubelix'] == 1:
+        wandb.init(project='Contrastive-Graphs', config=p, name=current_time + '_aff',
+                   notes=f"{p['dataset']} - {p['backbone']}")
 
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
@@ -118,10 +123,11 @@ def main(p):
         # Train
         print('Train ...')
         eval_train = train_segmentation_vanilla(p, train_loader, model, criterion, optimizer, epoch, device)
-
+        step = len(train_loader) * (epoch + 1)
         # Evaluate online -> This will use batched eval where every image is resized to the same resolution.
         print('Evaluate ...')
-        eval_val = eval_segmentation_supervised_online(p, val_loader, model, device)
+        eval_val = eval_segmentation_supervised_online(p, val_loader, model, device, step)
+
         if eval_val['mIoU'] > best_iou:
             print('Found new best model: %.2f -> %.2f (mIoU)' % (100 * best_iou, 100 * eval_val['mIoU']))
             best_iou = eval_val['mIoU']
@@ -129,7 +135,7 @@ def main(p):
             torch.save(model.state_dict(), p['best_model'])
         else:
             print('No new best model: %.2f -> %.2f (mIoU)' % (100 * best_iou, 100 * eval_val['mIoU']))
-            print('Last best model was found in epoch %d' % (best_epoch))
+            print('Last best model was found in epoch %d' % best_epoch)
 
         # Checkpoint
         print('Checkpoint ...')

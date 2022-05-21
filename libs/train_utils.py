@@ -213,8 +213,9 @@ def train_segmentation_vanilla(p, train_loader, model, criterion, optimizer, epo
         loss.backward()
         optimizer.step()
 
-        if i % 100 == 0:
-            progress.display(i)
+        if (i + 1) % p['logs']['writing_freq'] == 0 and p['ubelix']:
+            step_logging = epoch * len(train_loader) + i
+            progress.to_wandb(step_logging, prefix='train')
 
     eval_results = semseg_meter.return_score(verbose=True)
     return eval_results

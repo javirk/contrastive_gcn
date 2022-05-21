@@ -37,6 +37,10 @@ def main(p):
     p['checkpoint'] = f'./ckpt/{current_time}_graph.pth'
     utils.dict_to_file(p, f'runs/{current_time}.yml')
 
+    if p['ubelix'] == 1:
+        wandb.init(project='Contrastive-Graphs', config=p, name=current_time + '_seg',
+                   notes=f"{p['dataset']} - {p['backbone']}")
+
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
     sal_tf = get_sal_transforms(p)
