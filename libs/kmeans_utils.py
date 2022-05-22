@@ -42,7 +42,7 @@ def eval_kmeans(p, val_dataset, n_clusters=21, compute_metrics=False, verbose=Tr
         embedding = np.load(filename)
 
         # Check where ground-truth is valid. Append valid pixels to the array.
-        gt = sample['semseg'][0].numpy()
+        gt = sample['semseg'].numpy()
         valid = (gt != 255)  # I think this is only for PASCAL.
         n_valid = np.sum(valid)
         all_gt[offset_:offset_ + n_valid] = gt[valid]
