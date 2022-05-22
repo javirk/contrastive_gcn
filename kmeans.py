@@ -13,10 +13,13 @@ from libs.common_config import get_train_transforms, get_sal_transforms, get_joi
 
 parser = argparse.ArgumentParser()
 
-parser.add_argument('-c', '--config',
-                    default='configs/configs-default_aff.yml',
+parser.add_argument('-sc', '--segmentation-config',
                     type=str,
-                    help='Path to the config file')
+                    help='Config file for the environment')
+
+parser.add_argument('-ac', '--affinity-config',
+                    type=str,
+                    help='Config file for the environment')
 
 parser.add_argument('-u', '--ubelix',
                     default=1,
@@ -65,12 +68,13 @@ def main(p):
 
 
 if __name__ == '__main__':
-    config = utils.read_config(FLAGS.config)
+    config = utils.read_config(FLAGS.segmentation_config)
+    config_aff = utils.read_config(FLAGS.affinity_config)
     config_env = utils.read_config('configs/env_configs.yml')
     config.update(config_env)
     config.update(vars(FLAGS))
 
-    print(f'Using file {FLAGS.config}')
+    print(f'Using files {FLAGS.segmentation_config} and {FLAGS.affinity_config}')
 
     config['ubelix'] = FLAGS.ubelix
     num_workers = 8
@@ -79,8 +83,13 @@ if __name__ == '__main__':
         config['val_kwargs']['batch_size'] = 2
         num_workers = 0
 
-    if 'runs' in FLAGS.config:
-        date_run = FLAGS.config.split('/')[-1].split('.')[-2]
+    if 'runs' in FLAGS.affinity_config:
+        date_run = FLAGS.affinity_config.split('/')[-1].split('.')[-2]
+        config['pretrained_backbone'] = date_run + '_aff.pth'
+
+    if 'runs' in FLAGS.segmentation_config:
+        date_run = FLAGS.segmentation_config.split('/')[-1].split('.')[-2]
         config['pretrained_gcn'] = date_run + '_graph.pth'
 
+    print(config)
     main(config)
