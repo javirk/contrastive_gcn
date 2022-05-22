@@ -45,7 +45,7 @@ def main(p):
     sal_tf = get_sal_transforms(p)
     image_tf = get_train_transforms(p)
     joint_tf = get_joint_transforms(p)
-    dataset = get_dataset(p, root='data/', image_set='trainaug', transform=image_tf, sal_transform=sal_tf,
+    dataset = get_dataset(p, root='data/', image_set='val', transform=image_tf, sal_transform=sal_tf,
                           joint_transform=joint_tf)
     dataloader = DataLoader(dataset, batch_size=p['val_kwargs']['batch_size'], shuffle=True, drop_last=True,
                             num_workers=num_workers, pin_memory=True)
