@@ -47,7 +47,7 @@ def main(p):
     joint_tf = get_joint_transforms(p)
     dataset = get_dataset(p, root='data/', image_set='val', transform=image_tf, sal_transform=sal_tf,
                           joint_transform=joint_tf)
-    dataloader = DataLoader(dataset, batch_size=p['val_kwargs']['batch_size'], shuffle=True, drop_last=True,
+    dataloader = DataLoader(dataset, batch_size=p['val_kwargs']['batch_size'], shuffle=True, drop_last=False,
                             num_workers=num_workers, pin_memory=True)
 
     backbone = get_segmentation_model(p)
