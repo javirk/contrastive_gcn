@@ -40,4 +40,4 @@
 module load Anaconda3
 eval "$(conda shell.bash hook)"
 conda activate pygt
-PYTHONPATH="../" python ./kmeans.py --configs runs/20220330-154611.yaml
+PYTHONPATH="../" python ./kmeans.py -ac runs/20220519-151113.yml -sc runs/20220520-155322.yml
