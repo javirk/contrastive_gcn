@@ -8,7 +8,7 @@ from models.gcn import AGNN
 from models.builder import SegGCN
 from libs.data.transforms import AffinityPerturbation, AffinityDropping
 from libs.kmeans_utils import save_embeddings_to_disk, eval_kmeans
-from libs.common_config import get_train_transforms, get_sal_transforms, get_joint_transforms, get_dataset, \
+from libs.common_config import get_val_transforms, get_sal_transforms, get_joint_transforms, get_dataset, \
     get_segmentation_model
 
 parser = argparse.ArgumentParser()
@@ -43,11 +43,11 @@ def main(p):
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
     sal_tf = get_sal_transforms(p)
-    image_tf = get_train_transforms(p)
+    image_tf = get_val_transforms(p)
     joint_tf = get_joint_transforms(p)
     dataset = get_dataset(p, root='data/', image_set='val', transform=image_tf, sal_transform=sal_tf,
                           joint_transform=joint_tf)
-    dataloader = DataLoader(dataset, batch_size=p['val_kwargs']['batch_size'], shuffle=True, drop_last=False,
+    dataloader = DataLoader(dataset, batch_size=p['val_kwargs']['batch_size'], shuffle=False, drop_last=False,
                             num_workers=num_workers, pin_memory=True)
 
     backbone = get_segmentation_model(p)
