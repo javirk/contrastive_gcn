@@ -47,6 +47,8 @@ def main(p):
     joint_tf = get_joint_transforms(p)
     dataset = get_dataset(p, root='data/', image_set='val', transform=image_tf, sal_transform=sal_tf,
                           joint_transform=joint_tf)
+    true_val_dataset = get_dataset(p, root='data/', image_set='val', transform=None, sal_transform=sal_tf,
+                          joint_transform=joint_tf)
     dataloader = DataLoader(dataset, batch_size=p['val_kwargs']['batch_size'], shuffle=False, drop_last=False,
                             num_workers=num_workers, pin_memory=True)
 
@@ -62,7 +64,7 @@ def main(p):
     n_clusters = 21
     results_miou = []
     save_embeddings_to_disk(p, dataloader, model, n_clusters=n_clusters, seed=1234, device=device)
-    eval_stats = eval_kmeans(p, dataset, n_clusters=n_clusters, verbose=True)
+    eval_stats = eval_kmeans(p, true_val_dataset, n_clusters=n_clusters, verbose=True)
     results_miou.append(eval_stats['mIoU'])
     print('Average mIoU is %2.1f' % results_miou[0])
 
