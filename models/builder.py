@@ -105,9 +105,6 @@ class SegGCN(nn.Module):
             f_h, f_w = features.shape[-2], features.shape[-1]
 
             aff_mat = torch.pow(aff_mat, 1)  # This probably doesn't do anything
-            # mask = mask.sigmoid()
-            # mask = nn.functional.interpolate(mask, size=(f_h, f_w))
-            # mask = (mask > 0.5).int().squeeze(1)  # B x f_h x f_w
 
             aff_mat = utils.generate_aff(f_h, f_w, aff_mat, radius=radius)  # B x f_h.f_w x f_h.f_w
 
@@ -117,8 +114,6 @@ class SegGCN(nn.Module):
             aff_mat_aug = graph_transforms(aff_mat.clone())
 
             # Unbatched affinity matrix
-            # aff_mat = torch.block_diag(*aff_mat)
-            # aff_mat_aug = torch.block_diag(*aff_mat_aug)
             aff_mat = aff_mat.to(features.device)
             aff_mat_aug = aff_mat_aug.to(features.device)
 
@@ -132,7 +127,6 @@ class SegGCN(nn.Module):
             mask_ori = mask_ori.long()
 
         # Run the main features through the GNN
-        # adj = aff_mat.to_sparse().to(features.device)
         feat_ori, sal = self.graph(features, aff_mat, batch_size=bs, f_h=f_h, f_w=f_w)  # B x H.W x dim
         feat_ori = rearrange(feat_ori, 'b hw c -> (b hw) c')  # B.H.W x dim
         feat_ori = nn.functional.normalize(feat_ori, dim=-1)
@@ -140,8 +134,7 @@ class SegGCN(nn.Module):
         # Run the augmented features through the GNN
         with torch.no_grad():
             self._momentum_update_key_encoder()  # update the key encoder
-            # adj_aug = aff_mat_aug.to_sparse().to(features.device)
-            feat_aug, _ = self.graph_k(features, aff_mat_aug)  # B x H.W x dim
+            feat_aug, _ = self.graph(features, aff_mat_aug)  # B x H.W x dim
             feat_aug = rearrange(feat_aug, 'b hw c -> b c hw')  # B x dim x H.W
 
             mask_k = mask.reshape(bs, -1, 1).float()  # B x H.W x 1

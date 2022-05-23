@@ -9,7 +9,7 @@
 #SBATCH --account=ws_00000
 
 # Job name
-#SBATCH --job-name="graph_contrastive"
+#SBATCH --job-name="kmeans"
 
 # Partition
 #SBATCH --partition=gpu-invest # all, gpu, phi, long
