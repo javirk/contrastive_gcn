@@ -134,7 +134,7 @@ class SegGCN(nn.Module):
         # Run the augmented features through the GNN
         with torch.no_grad():
             self._momentum_update_key_encoder()  # update the key encoder
-            feat_aug, _ = self.graph(features, aff_mat_aug)  # B x H.W x dim
+            feat_aug, _ = self.graph_k(features, aff_mat_aug)  # B x H.W x dim
             feat_aug = rearrange(feat_aug, 'b hw c -> b c hw')  # B x dim x H.W
 
             mask_k = mask.reshape(bs, -1, 1).float()  # B x H.W x 1

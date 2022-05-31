@@ -40,4 +40,4 @@
 module load Anaconda3
 eval "$(conda shell.bash hook)"
 conda activate pygt
-PYTHONPATH="../" python ./train_seg.py --config configs/configs-default_seg.yml
+PYTHONPATH="../" python ./train_seg.py -ac runs/20220519-151113.yml
