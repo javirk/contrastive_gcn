@@ -59,6 +59,9 @@ def get_augmentation_transforms(p):
 def get_train_transforms(p):
     return A.Compose([
         A.RandomResizedCrop(p['resolution'], p['resolution'], scale=(0.2, 1.)),
+        A.ColorJitter(0.4, 0.4, 0.4, 0.1, p=0.8),
+        A.ToGray(p=0.2),
+        A.HorizontalFlip()
     ])
 
 def get_val_transforms(p):

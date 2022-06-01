@@ -86,14 +86,14 @@ class SegGCN(nn.Module):
         else:
             return self.forward_val(*args)
 
-    def forward_train(self, img, mask, graph_transforms):
+    def forward_train(self, img, mask, graph_transforms, radius):
         """
         :param img:
         :param mask:
         :param graph_transforms:
+        :param radius:
         :return:
         """
-        radius = 4
         dict_return = {}
         bs, c, h, w = img.size()
         mask = mask.squeeze(dim=1)

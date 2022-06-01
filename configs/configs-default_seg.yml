@@ -12,11 +12,11 @@ pretrained_backbone: None
 pretrained_gcn: None
 
 train_kwargs:
-  batch_size: 64
+  batch_size: 16
   lambda_contrastive: 1
 
 val_kwargs:
-  batch_size: 128
+  batch_size: 16
 
 # Optimizer
 epochs: 120

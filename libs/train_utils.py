@@ -34,7 +34,8 @@ def forward_seg(p, loader, model, crit_bce, graph_tr, optimizer, epoch, device, 
         # cam = utils.get_cam_segmentation(input_batch)
 
         with torch.set_grad_enabled(phase == 'train'):
-            logits, labels, pred_sal, other_res = model(input_batch, saliency, graph_tr, training_branch=True)
+            logits, labels, pred_sal, other_res = model(input_batch, saliency, graph_tr, training_branch=True,
+                                                        radius=p['radius'])
 
         sal_loss = crit_bce(pred_sal, saliency)
 
@@ -80,7 +81,7 @@ def forward_seg(p, loader, model, crit_bce, graph_tr, optimizer, epoch, device, 
 
 
 def forward_aff(p, loader, model, crit_aff, crit_bce, optimizer, epoch, device, phase='train', last_it=None):
-    radius = 4
+    radius = p['radius']
     losses_meter = utils.AverageMeter('Loss', ':.4e')
     ce_loss_meter = utils.AverageMeter('CE_loss', ':.4e')
     aff_loss_meter = utils.AverageMeter('Affinity regularized', ':.4e')

@@ -11,13 +11,10 @@ class ResnetDilated(nn.Module):
         from functools import partial
 
         if dilate_scale == 8:
-            orig_resnet.layer3.apply(
-                partial(self._nostride_dilate, dilate=2))
-            orig_resnet.layer4.apply(
-                partial(self._nostride_dilate, dilate=4))
+            orig_resnet.layer3.apply(partial(self._nostride_dilate, dilate=2))
+            orig_resnet.layer4.apply(partial(self._nostride_dilate, dilate=4))
         elif dilate_scale == 16:
-            orig_resnet.layer4.apply(
-                partial(self._nostride_dilate, dilate=2))
+            orig_resnet.layer4.apply(partial(self._nostride_dilate, dilate=2))
 
         self.conv1 = orig_resnet.conv1
         self.bn1 = orig_resnet.bn1
