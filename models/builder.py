@@ -80,13 +80,13 @@ class SegGCN(nn.Module):
 
         self.queue_ptr[0] = ptr
 
-    def forward(self, *args, training_branch=False):
-        if self.training or training_branch:
-            return self.forward_train(*args)
+    def forward(self, *args, **kwargs):
+        if self.training or kwargs['training_branch']:
+            return self.forward_train(*args, **kwargs)
         else:
             return self.forward_val(*args)
 
-    def forward_train(self, img, mask, graph_transforms, radius):
+    def forward_train(self, img, mask, graph_transforms, radius, **kwargs):
         """
         :param img:
         :param mask:
@@ -161,7 +161,7 @@ class SegGCN(nn.Module):
         return logits, mask_ori, sal, dict_return
 
     @torch.no_grad()
-    def forward_val(self, img, apply_transforms=None):
+    def forward_val(self, img, apply_transforms=None, **kwargs):
         radius = 4
 
         out_dict = self.encoder(img)
