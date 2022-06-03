@@ -99,7 +99,7 @@ class SegGCN(nn.Module):
         mask = mask.squeeze(dim=1)
 
         # Maybe the first part has to be taken from memory. Check if it takes a lot ot time
-        with torch.no_grad():
+        with torch.set_grad_enabled(True):
             out_dict = self.encoder(img, radius=radius)
             features, aff_mat = out_dict['features'], out_dict['aff']
             f_h, f_w = features.shape[-2], features.shape[-1]

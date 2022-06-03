@@ -14,16 +14,16 @@ class AffinityNet(models.modules.resnet38d.Net):
         self.f8_4 = nn.Conv2d(1024, 128, 1, bias=False)
         self.f8_5 = nn.Conv2d(4096, 256, 1, bias=False)
 
-        self.f9 = nn.Conv2d(448, 448, 1, bias=False)
+        self.f9_custom = nn.Conv2d(448, 448, 1, bias=False)
 
         nn.init.kaiming_normal_(self.f8_3.weight)
         nn.init.kaiming_normal_(self.f8_4.weight)
         nn.init.kaiming_normal_(self.f8_5.weight)
-        nn.init.xavier_uniform_(self.f9.weight, gain=4)
+        nn.init.xavier_uniform_(self.f9_custom.weight, gain=4)
 
         self.not_training = [self.conv1a, self.b2, self.b2_1, self.b2_2]
 
-        self.from_scratch_layers = [self.f8_3, self.f8_4, self.f8_5, self.f9]
+        self.from_scratch_layers = [self.f8_3, self.f8_4, self.f8_5, self.f9_custom]
 
         self.predefined_featuresize = int(448 // 8)
 
@@ -33,7 +33,7 @@ class AffinityNet(models.modules.resnet38d.Net):
         f8_3 = F.elu(self.f8_3(d['conv4']))
         f8_4 = F.elu(self.f8_4(d['conv5']))
         f8_5 = F.elu(self.f8_5(d['conv6']))
-        x = F.elu(self.f9(torch.cat([f8_3, f8_4, f8_5], dim=1)))
+        x = F.elu(self.f9_custom(torch.cat([f8_3, f8_4, f8_5], dim=1)))
         features = torch.cat([d['conv4'], d['conv5'], d['conv6']], dim=1)
 
         N, C, H, W = x.shape

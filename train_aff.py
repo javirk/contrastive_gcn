@@ -50,7 +50,7 @@ def main(p):
     val_loader = DataLoader(val_dataset, batch_size=p['val_kwargs']['batch_size'], shuffle=False, drop_last=False,
                             num_workers=num_workers, pin_memory=True)
 
-    model = get_segmentation_model(p)
+    model = get_segmentation_model(p, device)
     model = nn.DataParallel(model)
     model.to(device)
     model.train()

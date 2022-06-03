@@ -64,7 +64,7 @@ def main(p):
     model = SegGCN(p, encoder=encoder, graph_network=gcn).to(device)
     model = nn.DataParallel(model)
     model.train()
-    model.module.encoder.eval()
+    # model.module.encoder.eval()
 
     crit_bce = BalancedCrossEntropyLoss()
 

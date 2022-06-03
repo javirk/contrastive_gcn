@@ -91,7 +91,7 @@ def get_dataset(p, root, image_set, **kwargs):
         return Pascal(root=os.path.join(root, 'VOCSegmentation'), image_set=image_set, **kwargs)
 
 
-def get_segmentation_model(p):
+def get_segmentation_model(p, device):
     # Get backbone
     if p['backbone'] == 'resnet18':
         import torchvision.models.resnet as resnet
@@ -107,6 +107,8 @@ def get_segmentation_model(p):
         from models.modules.resnet38_aff import AffinityNet
         backbone = AffinityNet()
         backbone_channels = 4096
+        state_dict = torch.load('pretrained/resnet38_SEAM.pth', map_location=device)
+        backbone.load_state_dict(state_dict, strict=False)
 
     elif p['backbone'] == 'unet':
         backbone = UNet(p, n_channels=3, n_classes=1)
