@@ -96,6 +96,8 @@ def forward_aff(p, loader, model, crit_aff, crit_bce, optimizer, epoch, device, 
         assert last_it is not None
         model.eval()
 
+    final_loss = 0
+
     for i, batch in enumerate(loader):
         input_batch = batch['img'].to(device)
         saliency = batch['sal'].to(device)  # Just the saliency (Bx1xHxW)
@@ -175,9 +177,10 @@ def forward_aff(p, loader, model, crit_aff, crit_bce, optimizer, epoch, device, 
     # Display progress
     if p['ubelix'] and phase == 'val':
         progress.to_wandb(last_it, prefix=phase)
+        final_loss = losses_meter.avg
         progress.reset()
 
-    return last_it
+    return last_it, final_loss
 
 @torch.no_grad()
 def accuracy(output, target, topk=(1,)):

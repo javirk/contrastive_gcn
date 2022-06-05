@@ -19,7 +19,7 @@ val_kwargs:
   batch_size: 16
 
 # Optimizer
-epochs: 120
+epochs: 60
 optimizer: sgd
 optimizer_kwargs:
    lr: 0.01
@@ -28,6 +28,9 @@ optimizer_kwargs:
    nesterov: False
 scheduler: poly
 
+early_stopping_kwargs:
+  patience: 5
+  min_delta: 0
 
 logs:
   writing_freq: 10
