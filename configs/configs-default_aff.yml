@@ -28,6 +28,7 @@ optimizer_kwargs:
    nesterov: False
 scheduler: poly
 
+early_stopping: True
 early_stopping_kwargs:
   patience: 5
   min_delta: 0
