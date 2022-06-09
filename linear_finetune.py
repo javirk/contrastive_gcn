@@ -57,7 +57,7 @@ def main(p):
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
     # Get model
-    encoder = get_segmentation_model(p)
+    encoder = get_segmentation_model(p, device)
     gcn = AGNN(num_features=p['gcn_kwargs']['ndim'], hidden_channels=p['gcn_kwargs']['hidden_channels'],
                output_dim=p['gcn_kwargs']['output_dim'])
     model = SimpleSegmentation(p, encoder, gcn)
